@@ -1,0 +1,105 @@
+@{
+    ViewData["Title"] = "Dosya İşlem Logları";
+}
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>📋 Dosya İşlem Logları</h2>
+            <p class="text-muted">Tüm dosya oluşturma ve yükleme işlemlerinin log kaydı</p>
+
+            <div class="card mt-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Log Dosyası İçeriği</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        ℹ️ <strong>Not:</strong> Her satırda dosya ID'si, kullanıcı ID'si, banka adı, kullanılan şifre ve işlem sonucu bulunmaktadır.
+                    </div>
+
+                    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; border: 1px solid #dee2e6; max-height: 500px; overflow-y: auto;">
+                        <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word; font-size: 12px;">@ViewBag.LogContent</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">🔐 Şifre Güncelleme</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="dosyaId">Dosya ID</label>
+                                <input type="text" class="form-control" id="dosyaId" placeholder="Örn: soru-bankasi-001">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="yeniSifre">Yeni Şifre</label>
+                                <input type="text" class="form-control" id="yeniSifre" placeholder="Yeni şifre girin">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-warning" onclick="updatePassword()">
+                        ✏️ Şifreyi Güncelle
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <a href="@Url.Action("Index", "Admin")" class="btn btn-secondary">← Geri Dön</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updatePassword() {
+        const dosyaId = document.getElementById('dosyaId').value;
+        const yeniSifre = document.getElementById('yeniSifre').value;
+
+        if (!dosyaId || !yeniSifre) {
+            alert('Dosya ID ve yeni şifreyi doldurunuz.');
+            return;
+        }
+
+        fetch('/Admin/DosyaSifresiGuncelle', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                dosyaId: dosyaId,
+                yeniSifre: yeniSifre
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                document.getElementById('dosyaId').value = '';
+                document.getElementById('yeniSifre').value = '';
+                location.reload(); // Log dosyasını yenile
+            } else {
+                alert('❌ Hata: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('İşlem sırasında hata oluştu: ' + error);
+        });
+    }
+</script>
+
+<style>
+    .container {
+        max-width: 1000px;
+    }
+    pre {
+        font-family: 'Courier New', monospace;
+    }
+    .card {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+</style>

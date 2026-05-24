@@ -1,0 +1,79 @@
+@{
+    ViewData["Title"] = "Admin Paneli - Kullanıcılar";
+}
+
+@model IEnumerable<mgtest.Models.Kullanici>
+
+<div class="container mt-5">
+    <h1>Kullanıcı Yönetimi</h1>
+    
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="mb-3">
+        <a href="@Url.Action("CreateUser", "Admin")" class="btn btn-primary">Yeni Kullanıcı Oluştur</a>
+        <a href="@Url.Action("Istatistikler", "Admin")" class="btn btn-info">İstatistikler</a>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Kullanıcı Adı</th>
+                <th>Ad Soyad</th>
+                <th>Email</th>
+                <th>Tür</th>
+                <th>Kayıt Tarihi</th>
+                <th>Son Kullanma</th>
+                <th>Aktif</th>
+                <th>İşlemler</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var kullanici in Model)
+            {
+                <tr>
+                    <td>@kullanici.KullaniciAdi</td>
+                    <td>@kullanici.Ad @kullanici.Soyad</td>
+                    <td>@kullanici.Email</td>
+                    <td>
+                        <span class="badge bg-@(kullanici.KullaniciTuru == mgtest.Models.KullaniciTuru.admin ? "danger" : kullanici.KullaniciTuru == mgtest.Models.KullaniciTuru.user ? "success" : "warning")">
+                            @kullanici.KullaniciTuru
+                        </span>
+                    </td>
+                    <td>@kullanici.KayitTarihi.ToString("dd/MM/yyyy")</td>
+                    <td>@kullanici.SonKullanmaTarihi.ToString("dd/MM/yyyy")</td>
+                    <td>
+                        @if (kullanici.AktifMi)
+                        {
+                            <span class="badge bg-success">Evet</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">Hayır</span>
+                        }
+                    </td>
+                    <td>
+                        <a href="@Url.Action("Edit", "Admin", new { id = kullanici.Id })" class="btn btn-sm btn-warning">Düzenle</a>
+                        <form method="post" action="@Url.Action("Delete", "Admin", new { id = kullanici.Id })" style="display:inline;">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Emin misiniz?')">Sil</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

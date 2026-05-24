@@ -1,0 +1,62 @@
+@{
+    ViewData["Title"] = "Admin Paneli";
+}
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>🔑 Admin Paneli</h2>
+            <p class="text-muted">Admin işlemleri yönetin</p>
+
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">👥 Kullanıcılar</h5>
+                            <p class="card-text">Kullanıcı ekle, düzenle, sil</p>
+                            <a href="@Url.Action("Kullanicilar", "Admin")" class="btn btn-primary">Yönet</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">📊 İstatistikler</h5>
+                            <p class="card-text">Sistem istatistiklerini görüntüle</p>
+                            <a href="@Url.Action("Istatistikler", "Admin")" class="btn btn-success">Görüntüle</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">📋 Dosya Logları</h5>
+                            <p class="card-text">Dosya işlem loglarını görüntüle</p>
+                            <a href="@Url.Action("DosyaLoglari", "Admin")" class="btn btn-warning">Görüntüle</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <a href="@Url.Action("Index", "Home")" class="btn btn-secondary">← Geri Dön</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .container {
+        max-width: 1200px;
+    }
+    .card {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+</style>

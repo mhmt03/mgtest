@@ -1,0 +1,521 @@
+/**
+ * SORU BANKASI UYGULAMASI - ÖZEL CSS DOSYASI
+ * Modern, responsive ve kullanıcı dostu tasarım
+ */
+
+/* ============================================
+   GENEL STIL AYARLARI
+   ============================================ */
+
+:root {
+    --primary-color: #3498db;
+    --success-color: #27ae60;
+    --danger-color: #e74c3c;
+    --warning-color: #f39c12;
+    --info-color: #16a085;
+    --dark-color: #2c3e50;
+    --light-color: #ecf0f1;
+    --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --transition-speed: 0.3s;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+/* ============================================
+   SORU KARTLARI
+   ============================================ */
+
+.question-card {
+    transition: transform var(--transition-speed) ease, 
+                box-shadow var(--transition-speed) ease;
+    border-radius: 12px;
+    border: none;
+}
+
+.question-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.question-card .card-body {
+    padding: 1.5rem;
+}
+
+/* Soru numarası */
+.question-card .question-number {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+/* ============================================
+   RESİM ZOOM İŞLEMLERİ
+   ============================================ */
+
+.question-image {
+    max-width: 400px;
+    max-height: 400px;
+    transition: transform 0.3s ease;
+    cursor: zoom-in;
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+}
+
+.question-image:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Zoom kontrol butonları */
+.zoom-btn {
+    min-width: 36px;
+    min-height: 36px;
+    border-radius: 50%;
+    transition: all var(--transition-speed) ease;
+}
+
+.zoom-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Global zoom bar */
+.global-zoom-bar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 15px 20px;
+    margin-bottom: 25px;
+    box-shadow: var(--card-shadow);
+}
+
+.global-zoom-bar b {
+    font-size: 1.1rem;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+/* ============================================
+   FORM ELEMENTLERİ
+   ============================================ */
+
+.form-control:focus, 
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+.form-check-input {
+    transform: scale(1.3);
+    margin-right: 10px;
+    cursor: pointer;
+    transition: all var(--transition-speed) ease;
+}
+
+.form-check-input:checked {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.form-check-input:hover {
+    box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
+}
+
+/* ============================================
+   BUTONLAR
+   ============================================ */
+
+.btn {
+    transition: all var(--transition-speed) ease;
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 0.5rem 1.2rem;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    border: none;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+    border: none;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    border: none;
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    border: none;
+}
+
+/* ============================================
+   DRAG & DROP (SORTABLE)
+   ============================================ */
+
+.drag-handle {
+    cursor: move;
+    transition: all var(--transition-speed) ease;
+}
+
+.drag-handle:hover {
+    color: var(--primary-color);
+    transform: scale(1.2);
+}
+
+.sortable-ghost {
+    opacity: 0.4;
+    background: var(--light-color);
+}
+
+.sortable-chosen {
+    opacity: 1;
+    border: 2px dashed var(--primary-color);
+}
+
+.sortable-drag {
+    opacity: 0.8;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   MODAL İYİLEŞTİRMELERİ
+   ============================================ */
+
+.modal-header {
+    border-bottom: 3px solid var(--primary-color);
+}
+
+.modal-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.modal-fullscreen .modal-body {
+    padding: 2rem;
+}
+
+/* ============================================
+   LİSTE GRUPLARı (DERS/KONU/KAZANIM)
+   ============================================ */
+
+.list-group-item {
+    transition: all var(--transition-speed) ease;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+}
+
+.list-group-item:hover {
+    background-color: var(--light-color);
+    border-left-color: var(--primary-color);
+}
+
+.list-group-item.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.list-group-item.active:hover {
+    background-color: #2980b9;
+}
+
+/* ============================================
+   CROPPER MODAL
+   ============================================ */
+
+.cropper-view-box,
+.cropper-face {
+    border-radius: 8px;
+}
+
+.cropper-container {
+    border-radius: 8px;
+}
+
+/* ============================================
+   BADGES & LABELS
+   ============================================ */
+
+.badge {
+    padding: 0.5em 0.8em;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+/* ============================================
+   SIKLAR CONTAINER
+   ============================================ */
+
+.siklar-container {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--info-color);
+}
+
+.siklar-container ul {
+    margin-bottom: 0;
+}
+
+.siklar-container li {
+    padding: 0.4rem 0;
+    transition: all var(--transition-speed) ease;
+}
+
+.siklar-container li:hover {
+    padding-left: 0.5rem;
+}
+
+/* ============================================
+   ALERTS & NOTIFICATIONS
+   ============================================ */
+
+.alert {
+    border-radius: 10px;
+    border: none;
+    box-shadow: var(--card-shadow);
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: white;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+    color: white;
+}
+
+/* ============================================
+   EXPORT BÖLÜMÜ
+   ============================================ */
+
+.export-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: var(--card-shadow);
+}
+
+.export-section input {
+    border-radius: 8px;
+    border: 2px solid white;
+}
+
+.export-section .btn-group {
+    gap: 10px;
+}
+
+.export-section .btn-group .btn {
+    flex: 1;
+    white-space: nowrap;
+}
+
+/* ============================================
+   RESPONSIVE TASARIM
+   ============================================ */
+
+@media (max-width: 768px) {
+    .question-card {
+        margin-bottom: 1rem;
+    }
+    
+    .question-image {
+        max-width: 100%;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .btn-group .btn {
+        width: 100%;
+    }
+    
+    .global-zoom-bar {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .global-zoom-bar .btn-group {
+        margin-top: 10px;
+        justify-content: center;
+    }
+    
+    .export-section .btn-group {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 576px) {
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+    }
+}
+
+/* ============================================
+   ANİMASYONLAR
+   ============================================ */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.question-card {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.btn-primary:hover {
+    animation: pulse 1s infinite;
+}
+
+/* ============================================
+   SCROLL BAR STYLING
+   ============================================ */
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+/* ============================================
+   LOADING SPINNER
+   ============================================ */
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.shadow-custom {
+    box-shadow: var(--card-shadow);
+}
+
+.rounded-custom {
+    border-radius: 12px;
+}
+
+.text-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.border-gradient {
+    border: 2px solid transparent;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, #667eea 0%, #764ba2 100%) border-box;
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .question-card {
+        page-break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+    
+    body {
+        background: white;
+    }
+}

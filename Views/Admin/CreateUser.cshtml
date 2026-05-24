@@ -1,0 +1,61 @@
+@{
+    ViewData["Title"] = "Yeni Kullanıcı Oluştur";
+}
+
+<div class="container mt-5">
+    <h1>Yeni Kullanıcı Oluştur</h1>
+    
+    @if (ViewBag.Error != null)
+    {
+        <div class="alert alert-danger">@ViewBag.Error</div>
+    }
+    
+    <form method="post" class="mt-4">
+        @Html.AntiForgeryToken()
+        
+        <div class="form-group mb-3">
+            <label for="KullaniciAdi">Kullanıcı Adı</label>
+            <input type="text" id="KullaniciAdi" name="KullaniciAdi" class="form-control" required />
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="Ad">Ad</label>
+            <input type="text" id="Ad" name="Ad" class="form-control" required />
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="Soyad">Soyad</label>
+            <input type="text" id="Soyad" name="Soyad" class="form-control" required />
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="Email">Email</label>
+            <input type="email" id="Email" name="Email" class="form-control" required />
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="sifre">Şifre</label>
+            <input type="password" id="sifre" name="sifre" class="form-control" required />
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="sifreTekrar">Şifre (Tekrar)</label>
+            <input type="password" id="sifreTekrar" name="sifreTekrar" class="form-control" required />
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="KullaniciTuru">Kullanıcı Türü</label>
+            <select id="KullaniciTuru" name="KullaniciTuru" class="form-control">
+                @foreach (var tur in ViewBag.KullaniciTurleri)
+                {
+                    <option value="@tur">@tur</option>
+                }
+            </select>
+        </div>
+
+        <div>
+            <button type="submit" class="btn btn-primary">Oluştur</button>
+            <a href="@Url.Action("Kullanicilar", "Admin")" class="btn btn-secondary">İptal</a>
+        </div>
+    </form>
+</div>

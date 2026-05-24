@@ -1,0 +1,77 @@
+@model mgtest.Models.Soru
+@{
+    ViewData["Title"] = "Soru Düzenle";
+}
+
+<div class="container mt-5">
+    <h1>Soru Düzenle</h1>
+
+    <form method="post" enctype="multipart/form-data" class="mt-4">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="Id" value="@Model.Id" />
+
+        <div class="row mb-3">
+            <label for="DersId" class="col-sm-3 col-form-label">Ders</label>
+            <div class="col-sm-9">
+                <select id="DersId" name="DersId" class="form-select" required>
+                    <option value="">Seçiniz...</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label for="SoruMetni" class="col-sm-3 col-form-label">Soru Metni *</label>
+            <div class="col-sm-9">
+                <textarea id="SoruMetni" name="SoruMetni" class="form-control" rows="4" required>@Model.SoruMetni</textarea>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label for="DogruCevapSikki" class="col-sm-3 col-form-label">Doðru Cevap *</label>
+            <div class="col-sm-9">
+                <select id="DogruCevapSikki" name="DogruCevapSikki" class="form-select" required>
+                    <option value="">Seçiniz</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                    <option value="E">E</option>
+                    <option value="F">F</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label for="ZorlukSeviye" class="col-sm-3 col-form-label">Zorluk Seviyesi</label>
+            <div class="col-sm-9">
+                <select id="ZorlukSeviye" name="ZorlukSeviye" class="form-select">
+                    <option value="orta">Orta</option>
+                    <option value="cokKolay">Çok Kolay</option>
+                    <option value="kolay">Kolay</option>
+                    <option value="zor">Zor</option>
+                    <option value="cokZor">Çok Zor</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label for="SoruResmi" class="col-sm-3 col-form-label">Soru Resmi</label>
+            <div class="col-sm-9">
+                @if (!string.IsNullOrEmpty(Model.SoruResmi))
+                {
+                    <div class="mb-2">
+                        <img src="data:image/jpeg;base64,@Model.SoruResmi" style="max-width: 200px;" alt="Soru Resmi" />
+                    </div>
+                }
+                <input type="file" id="SoruResmi" name="SoruResmi" class="form-control" accept="image/*" />
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-9 offset-sm-3">
+                <button type="submit" class="btn btn-primary">Kaydet</button>
+                <a href="@Url.Action("Sorular", "mgtest")" class="btn btn-secondary">Ýptal</a>
+            </div>
+        </div>
+    </form>
+</div>

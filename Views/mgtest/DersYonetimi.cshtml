@@ -1,0 +1,230 @@
+﻿@{
+    ViewData["Title"] = "Ders Yönetimi";
+}
+
+<div class="container mt-5">
+    <h2>Ders/Konu/Kazanım Yönetimi</h2>
+    
+    <!-- 
+    ============================================
+    DERS YÖNETİMİ MODAL - HTML KODU
+    ============================================
+    
+    Bu HTML kodunu başka bir sayfaya taşımak için:
+    1. Bu kodu sayfanızın <body> etiketinin sonuna yapıştırın
+    2. ders-yonetimi.js dosyasını sayfanıza dahil edin:
+       <script src="/js/ders-yonetimi.js"></script>
+    3. Bootstrap 5 CSS ve JS dosyalarının yüklendiğinden emin olun
+    4. Backend endpoint'lerini kontrol edin (/mgtest/GetDersler, AddDers, vb.)
+    
+    Not: Bu modal Ders/Konu/Kazanım hiyerarşisini yönetir.
+-->
+
+<!-- Ders/Konu/Kazanım Yönetimi Modal -->
+<div class="modal fade" id="dersEkleModal" tabindex="-1" aria-labelledby="dersEkleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header bg-primary text-white">
+                <div>
+                    <h5 class="modal-title" id="dersEkleModalLabel">
+                        <i class="bi bi-folder-plus"></i> Ders/Konu/Kazanım Yönetimi
+                    </h5>
+                    <small class="d-block mt-1">Eğitim müfredatınızı düzenleyin</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="modal-body p-4">
+                <!-- Bilgilendirme Banner -->
+                <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
+                    <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                    <div>
+                        <strong>Kullanım:</strong> 
+                        Önce sol sütundan bir ders seçin, ardından o derse ait konuları yönetin. 
+                        Son olarak seçili konuya kazanımlar ekleyebilirsiniz.
+                    </div>
+                </div>
+                
+                <!-- 3 Sütunlu Yapı -->
+                <div class="row g-4">
+                    
+                    <!-- DERSLER Sütunu -->
+                    <div class="col-md-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-book"></i> Dersler
+                                    </h6>
+                                    <span class="badge bg-light text-dark" id="dersCount">0</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <!-- Ders Listesi -->
+                                <ul id="dersListesi" class="list-group list-group-flush" style="min-height:200px; max-height:300px; overflow-y:auto;">
+                                    <li class="list-group-item text-muted text-center">
+                                        Yükleniyor...
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="card-footer">
+                                <!-- Ders Ekleme Formu -->
+                                <div class="input-group input-group-sm mb-2">
+                                    <input type="text" 
+                                           id="dersAdiInput" 
+                                           class="form-control" 
+                                           placeholder="Ders adı (örn: Matematik)"
+                                           maxlength="100">
+                                    <button class="btn btn-success" id="dersEkleOnayBtn" title="Ekle">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                                <button class="btn btn-danger btn-sm w-100" id="dersSilBtn">
+                                    <i class="bi bi-trash"></i> Seçili Dersi Sil
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- KONULAR Sütunu -->
+                    <div class="col-md-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-info text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-bookmark"></i> Konular
+                                    </h6>
+                                    <span class="badge bg-light text-dark" id="konuCount">0</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <!-- Konu Listesi -->
+                                <ul id="konuListesi" class="list-group list-group-flush" style="min-height:200px; max-height:300px; overflow-y:auto;">
+                                    <li class="list-group-item text-muted text-center">
+                                        Önce bir ders seçin
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="card-footer">
+                                <!-- Konu Ekleme Formu -->
+                                <div class="input-group input-group-sm mb-2">
+                                    <input type="text" 
+                                           id="konuAdiInput" 
+                                           class="form-control" 
+                                           placeholder="Konu adı (örn: Türev)"
+                                           maxlength="100">
+                                    <button class="btn btn-success" id="konuEkleOnayBtn" title="Ekle">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                                <button class="btn btn-danger btn-sm w-100" id="konuSilBtn">
+                                    <i class="bi bi-trash"></i> Seçili Konuyu Sil
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- KAZANIMLAR Sütunu -->
+                    <div class="col-md-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-success text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-trophy"></i> Kazanımlar
+                                    </h6>
+                                    <span class="badge bg-light text-dark" id="kazanimCount">0</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <!-- Kazanım Listesi -->
+                                <ul id="kazanimListesi" class="list-group list-group-flush" style="min-height:200px; max-height:300px; overflow-y:auto;">
+                                    <li class="list-group-item text-muted text-center">
+                                        Önce bir konu seçin
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="card-footer">
+                                <!-- Kazanım Ekleme Formu -->
+                                <div class="input-group input-group-sm mb-2">
+                                    <input type="text" 
+                                           id="kazanimAdiInput" 
+                                           class="form-control" 
+                                           placeholder="Kazanım adı"
+                                           maxlength="200">
+                                    <button class="btn btn-success" id="kazanimEkleOnayBtn" title="Ekle">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                                <button class="btn btn-danger btn-sm w-100" id="kazanimSilBtn">
+                                    <i class="bi bi-trash"></i> Seçili Kazanımı Sil
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div> <!-- row sonu -->
+                
+                <!-- İstatistik Kartları (Opsiyonel) -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="alert alert-secondary d-flex justify-content-around text-center">
+                            <div>
+                                <strong class="d-block fs-4" id="toplamDers">0</strong>
+                                <small>Toplam Ders</small>
+                            </div>
+                            <div>
+                                <strong class="d-block fs-4" id="toplamKonu">0</strong>
+                                <small>Toplam Konu</small>
+                            </div>
+                            <div>
+                                <strong class="d-block fs-4" id="toplamKazanim">0</strong>
+                                <small>Toplam Kazanım</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div> <!-- modal-body sonu -->
+            
+            <!-- Modal Footer -->
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Kapat
+                </button>
+                <button type="button" class="btn btn-primary" onclick="location.reload()">
+                    <i class="bi bi-arrow-clockwise"></i> Sayfayı Yenile
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<!-- Ders Ekle Butonunu Sayfanıza Ekleyin -->
+<!-- Bu butonu istediğiniz yere koyabilirsiniz -->
+<style>
+    /* Ders Ekle Butonu için stil (isteğe bağlı) */
+    #dersEkleBtn {
+        transition: all 0.3s ease;
+    }
+    #dersEkleBtn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+</style>
+<button class="btn btn-info" id="dersEkleBtn">
+    <i class="bi bi-folder-plus"></i> Ders Yönetimi
+</button>
+<!-- 
+Kullanım Örneği:
+<button class="btn btn-info" id="dersEkleBtn">
+    <i class="bi bi-folder-plus"></i> Ders Yönetimi
+</button>
+-->
+    <!-- Modal yerine sayfanın kendisinde gösterebilirsiniz -->
+</div>
+
+<!-- JavaScript -->
+<script src="~/js/ders-yonetimi.js"></script>

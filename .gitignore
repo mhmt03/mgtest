@@ -1,0 +1,83 @@
+## Visual Studio specific files
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vscode/
+
+# User-specific files
+*.rsuser
+*.userprefs
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# NuGet Packages
+*.nupkg
+.nuget/
+nuget.exe
+
+# ASP.NET Core
+appsettings.*.json
+appsettings.json
+appsettings.Development.json
+
+# MSTest test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# Local History for Visual Studio
+.localhistory/
+
+# BeatPulse healthcheck temp database
+healthchecksdb
+
+# Backup folder for Package Reference Convert tool in Visual Studio 2017
+MigrationBackup/
+
+# Ionide (cross platform F# VS Code tools) working folder
+.ionide/
+
+# SQL Server files
+*.mdf
+*.ldf
+
+# Entity Framework Core migrations
+Migrations/
+
+# Sensitive data
+secrets.json
+*.p12
+*.key
+*.pfx
+
+# Local development environment files
+.env
+.env.local
+.env.*.local
+
+# Mac OS
+.DS_Store
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Azure
+*.azure
+*.pubxml

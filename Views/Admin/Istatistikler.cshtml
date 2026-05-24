@@ -1,0 +1,70 @@
+@{
+    ViewData["Title"] = "Admin İstatistikleri";
+}
+
+<div class="container mt-5">
+    <h1>Admin Panel İstatistikleri</h1>
+    
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Toplam Kullanıcı</h5>
+                    <p class="card-text display-4">@ViewBag.ToplamKullanici</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Toplam Banka</h5>
+                    <p class="card-text display-4">@ViewBag.ToplamBanka</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Toplam Üretim</h5>
+                    <p class="card-text display-4">@ViewBag.ToplamUretim</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Süresi Geçen</h5>
+                    <p class="card-text display-4 text-danger">@ViewBag.SureGecenKullanici</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h3>Kullanıcı Türlerine Göre Dağılım</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Kullanıcı Türü</th>
+                    <th>Sayı</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tur in ViewBag.KullaniciTurleri)
+                {
+                    <tr>
+                        <td>@tur.Tur</td>
+                        <td>@tur.Sayi</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4">
+        <a href="@Url.Action("Kullanicilar", "Admin")" class="btn btn-secondary">Geri Dön</a>
+    </div>
+</div>

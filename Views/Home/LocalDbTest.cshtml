@@ -1,0 +1,106 @@
+@{
+    ViewData["Title"] = "Local DB Test (Client-Side SQLite)";
+    Layout = "_Layout";
+}
+
+<div class="container mt-5">
+    <h2>Client-Side SQLite Testi</h2>
+    <p class="text-muted">Bu sayfa, File System Access API ve sql.js kullanarak bilgisayarınızdaki bir SQLite (.mg veya .db) dosyasını sunucuya yüklemeden tarayıcıda okumayı test eder.</p>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <button id="btnSelectFile" class="btn btn-primary">
+                <i class="fas fa-folder-open me-2"></i> Bilgisayardan Veritabanı Seç
+            </button>
+            <span id="selectedFileName" class="ms-3 text-success fw-bold"></span>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <h5 class="card-title mb-0">Veritabanı Tabloları (sqlite_master)</h5>
+        </div>
+        <div class="card-body">
+            <div id="loading" class="d-none text-center p-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Yükleniyor...</span>
+                </div>
+                <p class="mt-2">Veritabanı okunuyor...</p>
+            </div>
+            <pre id="output" class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"></pre>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- sql.js wasm yükleniyor -->
+    <script src="~/lib/sqljs/sql-wasm.js"></script>
+    <script>
+        let SQL;
+
+        // Sayfa yüklendiğinde sql.js'yi hazırla
+        initSqlJs({ locateFile: file => `/lib/sqljs/${file}` }).then(function(sql) {
+            SQL = sql;
+            console.log("sql.js WASM yüklendi.");
+        });
+
+        document.getElementById('btnSelectFile').addEventListener('click', async () => {
+            try {
+                // File System Access API ile dosya seçiciyi aç
+                const [fileHandle] = await window.showOpenFilePicker({
+                    types: [
+                        {
+                            description: 'SQLite Veritabanı Dosyaları',
+                            accept: {
+                                'application/octet-stream': ['.mg', '.db', '.sqlite']
+                            }
+                        }
+                    ],
+                    excludeAcceptAllOption: false,
+                    multiple: false
+                });
+
+                document.getElementById('selectedFileName').innerText = "Seçilen Dosya: " + fileHandle.name;
+                document.getElementById('loading').classList.remove('d-none');
+                document.getElementById('output').innerText = "";
+
+                // Dosyayı oku
+                const file = await fileHandle.getFile();
+                const arrayBuffer = await file.arrayBuffer();
+                const uInt8Array = new Uint8Array(arrayBuffer);
+
+                // sql.js ile veritabanını tarayıcı belleğinde aç
+                const db = new SQL.Database(uInt8Array);
+
+                // Tabloları listeleyen basit bir sorgu yap
+                const result = db.exec("SELECT type, name, rootpage FROM sqlite_master WHERE type='table' OR type='view';");
+                
+                if (result.length > 0) {
+                    // Sonucu JSON formatında göster
+                    const columns = result[0].columns;
+                    const values = result[0].values;
+                    
+                    let outputText = "Sorgu Başarılı! Bulunan Tablolar:\n\n";
+                    outputText += columns.join(" | ") + "\n";
+                    outputText += "-".repeat(40) + "\n";
+                    
+                    values.forEach(row => {
+                        outputText += row.join(" | ") + "\n";
+                    });
+                    
+                    document.getElementById('output').innerText = outputText;
+                } else {
+                    document.getElementById('output').innerText = "Veritabanı başarıyla açıldı ancak içinde tablo bulunamadı.";
+                }
+
+                // Belleği temizle
+                db.close();
+            } catch (error) {
+                console.error("Hata oluştu:", error);
+                document.getElementById('output').innerText = "Bir hata oluştu:\n" + error.message;
+            } finally {
+                document.getElementById('loading').classList.add('d-none');
+            }
+        });
+    </script>
+}

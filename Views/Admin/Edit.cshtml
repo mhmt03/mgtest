@@ -1,0 +1,54 @@
+@{
+    ViewData["Title"] = "Kullanıcı Düzenle";
+}
+
+@model mgtest.Models.Kullanici
+
+<div class="container mt-5">
+    <h1>Kullanıcı Düzenle: @Model.KullaniciAdi</h1>
+    
+    <form method="post" class="mt-4">
+        @Html.AntiForgeryToken()
+        
+        <div class="form-group mb-3">
+            <label for="Ad">Ad</label>
+            <input type="text" id="Ad" name="Ad" class="form-control" value="@Model.Ad" required />
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="Soyad">Soyad</label>
+            <input type="text" id="Soyad" name="Soyad" class="form-control" value="@Model.Soyad" required />
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="Email">Email</label>
+            <input type="email" id="Email" name="Email" class="form-control" value="@Model.Email" required />
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="KullaniciTuru">Kullanıcı Türü</label>
+            <select id="KullaniciTuru" name="KullaniciTuru" class="form-control">
+                <option value="">Seçiniz...</option>
+                @foreach (var tur in ViewBag.KullaniciTurleri)
+                {
+                    <option value="@tur">@tur</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="SonKullanmaTarihi">Son Kullanma Tarihi</label>
+            <input type="date" id="SonKullanmaTarihi" name="SonKullanmaTarihi" class="form-control" value="@Model.SonKullanmaTarihi.ToString("yyyy-MM-dd")" required />
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="AktifMi">Aktif Kullanıcı</label>
+            <input type="checkbox" id="AktifMi" name="AktifMi" class="form-check-input" @(Model.AktifMi ? "checked" : "") />
+        </div>
+
+        <div>
+            <button type="submit" class="btn btn-primary">Kaydet</button>
+            <a href="@Url.Action("Kullanicilar", "Admin")" class="btn btn-secondary">İptal</a>
+        </div>
+    </form>
+</div>

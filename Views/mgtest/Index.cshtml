@@ -1,0 +1,880 @@
+@model mgtest.Models.mgtestViewModel
+@{
+    ViewData["Title"] = "Soru Bankası Yönetimi";
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Soru Bankası</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .main-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            max-width: 1300px;
+            margin: 0 auto;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .soru-card {
+            border: 1px solid rgba(0,0,0,0.05);
+            border-radius: 16px;
+            margin-bottom: 20px;
+            padding: 24px;
+            background: #ffffff;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+        .soru-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+            border-color: #667eea;
+        }
+        .btn-action {
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .btn-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .btn-info { background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #f12711 0%, #f5af19 100%); color: white; }
+        
+        .header-section {
+            border-bottom: 2px solid #f0f2f5;
+            padding-bottom: 25px;
+            margin-bottom: 30px;
+        }
+        
+        #folderBrowserSection {
+            background: #f8f9fc;
+            border-radius: 20px;
+            border: 1px solid #e3e6f0;
+            padding: 25px;
+            margin-bottom: 35px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.02);
+        }
+        
+        .table {
+            border-radius: 12px;
+            overflow: hidden;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .table thead th {
+            background-color: #f1f4f9;
+            color: #4e73df;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            padding: 15px;
+            border: none;
+        }
+        .file-row td {
+            padding: 15px;
+            background: white;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .file-icon-circle {
+            width: 40px;
+            height: 40px;
+            background: #abbcf1ff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4e73df;
+        }
+        .badge-count {
+            font-weight: 800 !important;
+            background-color: #2d7cf3ff !important;
+            color:black !important;
+        }
+        
+    </style>
+    <script src="/lib/sqljs/sql-wasm.js"></script>
+</head>
+<body>
+
+
+    <div class="main-panel">
+        <div id="bankaAdi" class="mb-3"></div>
+        <div id="noBank" class="alert alert-info">Henüz bir banka açılmadı.</div>
+
+        <!-- Klasör Tarayıcı Bölümü -->
+        <div id="folderBrowserSection">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0 text-primary"><i class="bi bi-folder2"></i> Klasör İçeriği (.mg dosyaları)</h4>
+                <div class="d-flex gap-2">
+                    <span id="folderPathLabel" class="text-muted small align-self-center me-2"></span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('folderBrowserSection').style.display='none'">
+                        <i class="bi bi-x-lg"></i> Kapat
+                    </button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle bg-white rounded shadow-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Dosya Adı</th>
+                            <th>Boyut</th>
+                            <th>Değiştirilme Tarihi</th>
+                            <th>Soru Sayısı</th>
+                            <th class="text-end">İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="folderFilesList">
+                        <!-- Dosyalar buraya JS ile yüklenecek -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="bankaContainer" style="display:none">
+            <div id="soruListContainer"></div>
+        </div>
+        <div class="header-section d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-1">📚 Soru Bankası Yönetimi</h2>
+                <p class="text-muted mb-0">Soru bankalarınızı yönetin, düzenleyin ve dışa aktarın.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/mgtest/DersYonetimi" class="btn btn-outline-primary btn-action">
+                    <i class="bi bi-gear-fill"></i> Ders/Konu Yönetimi
+                </a>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-start align-items-center mb-4 gap-2">
+            <button class="btn btn-success btn-action" onclick="document.getElementById('fileInput').click()">
+                <i class="bi bi-upload"></i> Banka Aç
+            </button>
+            <input type="file" id="fileInput" accept=".mg" style="display:none" />
+            
+            <button class="btn btn-info btn-action" onclick="klasorSec()">
+                <i class="bi bi-folder2-open"></i> Klasör Göster
+            </button>
+            
+            <a href="javascript:void(0)" onclick="yeniBankaOlustur()" class="btn btn-primary btn-action">
+                <i class="bi bi-plus-circle"></i> Yeni Banka Oluştur
+            </a>
+
+            <div class="ms-auto d-flex gap-2">
+                <!-- Buradaki PDF, Word ve Yeni Banka butonları CreateBank sayfasına taşındı -->
+            </div>
+        </div>
+
+        
+        <!-- Yeni Soru Ekleme Modal -->
+        <div class="modal fade" id="yeniSoruModal" tabindex="-1" aria-labelledby="yeniSoruModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="yeniSoruModalLabel">Soru Ekle/Düzenle</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="soruForm">
+                            <input type="hidden" id="soruId" />
+                            
+                            <div class="mb-3">
+                                <label for="soruMetni" class="form-label">Soru Metni</label>
+                                <textarea class="form-control" id="soruMetni" rows="3" placeholder="Soru metnini giriniz..."></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="soruResmi" class="form-label">Soru Resmi (Base64)</label>
+                                <input type="text" class="form-control" id="soruResmi" placeholder="Resim base64 formatında..." />
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="dersId" class="form-label">Ders</label>
+                                        <select class="form-select" id="dersId">
+                                            <option value="">Seçiniz...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="konuId" class="form-label">Konu</label>
+                                        <select class="form-select" id="konuId">
+                                            <option value="">Seçiniz...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="kazanimId" class="form-label">Kazanım</label>
+                                        <select class="form-select" id="kazanimId">
+                                            <option value="">Seçiniz...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="zorlukSeviye" class="form-label">Zorluk Seviyesi</label>
+                                        <select class="form-select" id="zorlukSeviye">
+                                            <option value="cokKolay">Çok Kolay</option>
+                                            <option value="kolay">Kolay</option>
+                                            <option value="orta" selected>Orta</option>
+                                            <option value="zor">Zor</option>
+                                            <option value="cokZor">Çok Zor</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <input type="checkbox" id="soruMetniAyriMi" checked /> Soru Metni Ayrı mı?
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h6>Şıklar</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="sikA" class="form-label">A Şıkkı</label>
+                                        <textarea class="form-control" id="sikA" rows="2"></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="sikB" class="form-label">B Şıkkı</label>
+                                        <textarea class="form-control" id="sikB" rows="2"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="sikC" class="form-label">C Şıkkı</label>
+                                        <textarea class="form-control" id="sikC" rows="2"></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="sikD" class="form-label">D Şıkkı</label>
+                                        <textarea class="form-control" id="sikD" rows="2"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="sikE" class="form-label">E Şıkkı</label>
+                                        <textarea class="form-control" id="sikE" rows="2"></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="dogruCevapSikki" class="form-label">Doğru Cevap</label>
+                                        <select class="form-select" id="dogruCevapSikki">
+                                            <option value="A">A</option>
+                                            <option value="B">B</option>
+                                            <option value="C">C</option>
+                                            <option value="D">D</option>
+                                            <option value="E">E</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <input type="checkbox" id="sikkarAyriMi" /> Şıklar Ayrı mı?
+                                </label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                        <button type="button" class="btn btn-primary" onclick="saveSoru()">Kaydet</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentSessionKey = null;
+        let sorular = [];
+        let bankaAdi = '';
+        const soruModal = new bootstrap.Modal(document.getElementById('yeniSoruModal'), {
+            backdrop: 'static',
+            keyboard: false
+        });
+
+        // Client-side file opener
+        document.getElementById('fileInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const reader = new FileReader();
+                reader.onload = async function() {
+                    try {
+                        const Uints = new Uint8Array(reader.result);
+                        const SQL = await window.initSqlJs({ locateFile: file => '/lib/sqljs/' + file });
+                        const db = new SQL.Database(Uints);
+
+                        let bankaName = file.name.replace('.mg', '');
+                        try {
+                            const resB = db.exec("SELECT BankaAdi FROM BankaAyarlari LIMIT 1");
+                            if (resB.length > 0 && resB[0].values.length > 0) {
+                                bankaName = resB[0].values[0][0];
+                            }
+                        } catch(e) { console.log('BankaAyarlari table missing'); }
+
+                        const resS = db.exec("SELECT * FROM Soru");
+                        const columns = resS[0].columns;
+                        const rows = resS[0].values;
+
+                        const loadedSorular = rows.map(row => {
+                            const s = {};
+                            columns.forEach((col, idx) => { s[col] = row[idx]; });
+                            
+                            return {
+                                id: s.Id || Math.floor(Math.random() * 1000000),
+                                soruResmi: s.SoruResmi || '',
+                                dersAdi: s.DersAdi || '',
+                                dersId: s.DersId || null,
+                                konuAdi: s.KonuAdi || '',
+                                konuId: s.KonuId || null,
+                                kazanimAdi: s.KazanimAdi || '',
+                                kazanimId: s.KazanimId || null,
+                                soruMetni: s.SoruMetni || '',
+                                soruMetniAyriMi: s.SoruMetniAyriMi === 1,
+                                sikkarAyriMi: s.SiklarAyriMi === 1,
+                                siklar: {
+                                    A: s.SikA || '',
+                                    B: s.SikB || '',
+                                    C: s.SikC || '',
+                                    D: s.SikD || '',
+                                    E: s.SikE || ''
+                                },
+                                dogruSik: s.DogruSik || 'A',
+                                olusturmaTarihi: s.OlusturmaTarihi || new Date().toISOString()
+                            };
+                        });
+
+                        localStorage.setItem('sorular', JSON.stringify(loadedSorular));
+                        localStorage.setItem('bankaAdi', bankaName);
+                        
+                        alert('Banka başarıyla yüklendi! Düzenleme sayfasına yönlendiriliyorsunuz...');
+                        window.location.href = '/mgtest/CreateBank';
+
+                    } catch (err) {
+                        console.error('SQL Error:', err);
+                        alert('Dosya açılamadı. Dosya bozuk olabilir veya formatı geçersiz.');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Dosya okunurken hata oluştu: ' + error.message);
+            }
+
+            e.target.value = '';
+        });
+
+        async function loadBankaSorular() {
+            try {
+                const response = await fetch(`/mgtest/GetSorular?sessionKey=${currentSessionKey}`);
+                sorular = await response.json();
+                renderSorular();
+            } catch (error) {
+                console.error('Error loading sorular:', error);
+                alert('Sorular yüklenirken hata oluştu');
+            }
+        }
+
+        function showBankaContainer() {
+            document.getElementById('bankaAdi').textContent = '📚 ' + bankaAdi;
+            document.getElementById('noBank').style.display = 'none';
+            document.getElementById('bankaContainer').style.display = 'block';
+        }
+
+        function renderSorular() {
+            const container = document.getElementById('soruListContainer');
+            container.innerHTML = '';
+
+            if (sorular.length === 0) {
+                container.innerHTML = '<div class="alert alert-warning">Henüz soru yok.</div>';
+                return;
+            }
+
+            sorular.forEach((soru, index) => {
+                const soruDiv = document.createElement('div');
+                soruDiv.className = 'soru-card';
+                soruDiv.id = `soru-${soru.id}`;
+                
+                const soruText = soru.soruMetni || 'Soru metni yok';
+                const truncated = soruText.substring(0, 100) + (soruText.length > 100 ? '...' : '');
+                
+                soruDiv.innerHTML = `
+                    <div class="soru-header">
+                        <div style="flex: 1;">
+                            <input type="checkbox" class="form-check-input soru-checkbox" data-soru-id="${soru.id}" />
+                            <strong>Soru #${index + 1}</strong>
+                        </div>
+                        <div>
+                            <small class="text-muted">${soru.zorlukSeviye || 'Orta'} | Ders: ${soru.dersId || 'N/A'}</small>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-info" onclick="editSoru(${soru.id})">📝 Düzenle</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteSoru(${soru.id})">🗑️ Sil</button>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <p class="mb-1"><strong>Soru:</strong> ${truncated}</p>
+                        <p class="mb-1"><strong>Doğru Cevap:</strong> ${soru.dogruCevapSikki || 'N/A'}</p>
+                    </div>
+                `;
+                
+                container.appendChild(soruDiv);
+            });
+        }
+
+        function filterSorular() {
+            const filter = document.getElementById('soruFilter').value;
+            const cards = document.querySelectorAll('.soru-card');
+            
+            cards.forEach(card => {
+                const checkbox = card.querySelector('.soru-checkbox');
+                const isMarked = checkbox.checked;
+                
+                if (filter === 'all') {
+                    card.style.display = 'block';
+                } else if (filter === 'marked' && isMarked) {
+                    card.style.display = 'block';
+                } else if (filter === 'unmarked' && !isMarked) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function openAddSoruModal() {
+            document.getElementById('soruId').value = '';
+            document.getElementById('soruForm').reset();
+            document.getElementById('yeniSoruModalLabel').textContent = 'Yeni Soru Ekle';
+            soruModal.show();
+        }
+
+        function editSoru(soruId) {
+            const soru = sorular.find(s => s.id === soruId);
+            if (!soru) return;
+
+            document.getElementById('soruId').value = soruId;
+            document.getElementById('soruMetni').value = soru.soruMetni || '';
+            document.getElementById('soruResmi').value = soru.soruResmi || '';
+            document.getElementById('dersId').value = soru.dersId || '';
+            document.getElementById('konuId').value = soru.konuId || '';
+            document.getElementById('kazanimId').value = soru.kazanimId || '';
+            document.getElementById('zorlukSeviye').value = soru.zorlukSeviye || 'orta';
+            document.getElementById('soruMetniAyriMi').checked = soru.soruMetniAyriMi !== false;
+            
+            document.getElementById('sikA').value = soru.aSikkiMetni || '';
+            document.getElementById('sikB').value = soru.bSikkiMetni || '';
+            document.getElementById('sikC').value = soru.cSikkiMetni || '';
+            document.getElementById('sikD').value = soru.dSikkiMetni || '';
+            document.getElementById('sikE').value = soru.eSikkiMetni || '';
+            document.getElementById('dogruCevapSikki').value = soru.dogruCevapSikki || 'A';
+            document.getElementById('sikkarAyriMi').checked = soru.sikkarAyriMi === true;
+
+            document.getElementById('yeniSoruModalLabel').textContent = 'Soru Düzenle';
+            soruModal.show();
+        }
+
+        async function saveSoru() {
+            const soruId = document.getElementById('soruId').value;
+            const soruData = {
+                id: soruId ? parseInt(soruId) : 0,
+                soruMetni: document.getElementById('soruMetni').value,
+                soruResmi: document.getElementById('soruResmi').value,
+                soruMetniAyriMi: document.getElementById('soruMetniAyriMi').checked,
+                dersId: parseInt(document.getElementById('dersId').value) || null,
+                konuId: parseInt(document.getElementById('konuId').value) || null,
+                kazanimId: parseInt(document.getElementById('kazanimId').value) || null,
+                zorlukSeviye: document.getElementById('zorlukSeviye').value,
+                aSikkiMetni: document.getElementById('sikA').value,
+                bSikkiMetni: document.getElementById('sikB').value,
+                cSikkiMetni: document.getElementById('sikC').value,
+                dSikkiMetni: document.getElementById('sikD').value,
+                eSikkiMetni: document.getElementById('sikE').value,
+                dogruCevapSikki: document.getElementById('dogruCevapSikki').value,
+                sikkarAyriMi: document.getElementById('sikkarAyriMi').checked
+            };
+
+            try {
+                const url = soruId 
+                    ? `/mgtest/UpdateSoru?sessionKey=${currentSessionKey}`
+                    : `/mgtest/AddSoru?sessionKey=${currentSessionKey}`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(soruData)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    soruModal.hide();
+                    loadBankaSorular();
+                    alert(soruId ? 'Soru güncellendi' : 'Soru eklendi');
+                } else {
+                    alert('Hata: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Hata: ' + error.message);
+            }
+        }
+
+        async function deleteSoru(soruId) {
+            if (!confirm('Bu soruyu silmek istediğinizden emin misiniz?')) return;
+
+            try {
+                const response = await fetch(`/mgtest/DeleteSoru?sessionKey=${currentSessionKey}&soruId=${soruId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    loadBankaSorular();
+                    alert('Soru silindi');
+                } else {
+                    alert('Hata: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Hata: ' + error.message);
+            }
+        }
+
+        async function saveBanka() {
+            if (!currentSessionKey) {
+                alert('Lütfen önce bir banka açınız.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/mgtest/SaveBankaChanges?sessionKey=${currentSessionKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ sorular })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Bankası başarıyla kaydedildi!');
+                    // Download the file
+                    if (result.downloadUrl) {
+                        window.location.href = result.downloadUrl;
+                    }
+                } else {
+                    alert('Hata: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Hata: ' + error.message);
+            }
+        }
+
+        function closeBank() {
+            if (confirm('Değişiklikleri kaydetmeden kapatmak istediğinizden emin misiniz?')) {
+                currentSessionKey = null;
+                sorular = [];
+                document.getElementById('bankaContainer').style.display = 'none';
+                document.getElementById('noBank').style.display = 'block';
+            }
+        }
+
+        // Export ve Yeni Banka fonksiyonları CreateBank sayfasına taşındı
+
+        // ============================================
+        // KLASÖR TARAYICI FONKSİYONLARI
+        // ============================================
+
+        async function klasorSec() {
+            try {
+                if (!window.showDirectoryPicker) {
+                    alert('Tarayıcınız Klasör Seçme özelliğini desteklemiyor. Lütfen Chrome, Edge veya Opera kullanın.');
+                    return;
+                }
+
+                const dirHandle = await window.showDirectoryPicker();
+                const folderFilesList = document.getElementById('folderFilesList');
+                const folderBrowserSection = document.getElementById('folderBrowserSection');
+                
+                folderFilesList.innerHTML = '<tr><td colspan="5" class="text-center"><div class="spinner-border spinner-border-sm text-primary"></div> Dosyalar taranıyor...</td></tr>';
+                folderBrowserSection.style.display = 'block';
+                document.getElementById('folderPathLabel').textContent = dirHandle.name;
+
+                const files = [];
+                for await (const entry of dirHandle.values()) {
+                    if (entry.kind === 'file' && entry.name.endsWith('.mg')) {
+                        const file = await entry.getFile();
+                        
+                        let soruSayisi = '...';
+                        try {
+                            const buffer = await file.arrayBuffer();
+                            const SQL_ENGINE = await window.initSqlJs({ locateFile: file => '/lib/sqljs/' + file });
+                            const tempDb = new SQL_ENGINE.Database(new Uint8Array(buffer));
+                            const res = tempDb.exec("SELECT COUNT(*) FROM Soru");
+                            if (res.length > 0) soruSayisi = res[0].values[0][0];
+                            tempDb.close();
+                        } catch (e) {
+                            console.error('Soru sayısı okunamadı:', entry.name, e);
+                            soruSayisi = 'Hata';
+                        }
+
+                        files.push({
+                            handle: entry,
+                            name: entry.name,
+                            size: formatBytes(file.size),
+                            lastModified: new Date(file.lastModified).toLocaleString('tr-TR'),
+                            soruSayisi: soruSayisi
+                        });
+                    }
+                }
+
+                renderFolderFiles(files);
+
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Klasör seçme hatası:', error);
+                    alert('Klasör açılırken bir hata oluştu.');
+                }
+            }
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function renderFolderFiles(files) {
+            const container = document.getElementById('folderFilesList');
+            container.innerHTML = '';
+
+            if (files.length === 0) {
+                container.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Bu klasörde .mg dosyası bulunamadı.</td></tr>';
+                return;
+            }
+
+            files.forEach((file, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'file-row';
+                tr.innerHTML = `
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="file-icon-circle me-3">
+                                <i class="bi bi-database-fill fs-5"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold text-dark" style="font-size: 1rem;">${file.name}</div>
+                                <div class="text-muted small">Soru Bankası Dosyası</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="text-muted">${file.size}</td>
+                    <td class="text-muted">${file.lastModified}</td>
+                    <td><span class="badge badge-count rounded-pill px-3 py-2" style="background-color: #2d7cf3ff; color:black;">${file.soruSayisi} Soru</span></td>
+                    <td class="text-end">
+                        <button class="btn btn-primary btn-sm rounded-pill px-4 py-2" onclick="openFileFromBrowser(${index})">
+                            <i class="bi bi-folder2-open me-1"></i> Aç
+                        </button>
+                    </td>
+                `;
+                if (!window._browserFiles) window._browserFiles = [];
+                window._browserFiles[index] = file.handle;
+
+                container.appendChild(tr);
+            });
+        }
+
+        async function openFileFromBrowser(index) {
+            const handle = window._browserFiles[index];
+            if (!handle) return;
+
+            try {
+                const file = await handle.getFile();
+                processSelectedFile(file);
+                document.getElementById('folderBrowserSection').style.display = 'none';
+            } catch (err) {
+                console.error('Dosya açma hatası:', err);
+                alert('Dosya açılamadı.');
+            }
+        }
+
+        async function processSelectedFile(file) {
+            try {
+                const reader = new FileReader();
+                reader.onload = async function() {
+                    try {
+                        const Uints = new Uint8Array(reader.result);
+                        const SQL = await window.initSqlJs({ locateFile: file => '/lib/sqljs/' + file });
+                        const db = new SQL.Database(Uints);
+
+                        let bankaName = file.name.replace('.mg', '');
+                        try {
+                            const resB = db.exec("SELECT BankaAdi FROM BankaAyarlari LIMIT 1");
+                            if (resB.length > 0 && resB[0].values.length > 0) {
+                                bankaName = resB[0].values[0][0];
+                            }
+                        } catch(e) { console.log('BankaAyarlari table missing'); }
+
+                        const resS = db.exec("SELECT * FROM Soru");
+                        const columns = resS[0].columns;
+                        const rows = resS[0].values;
+
+                        const loadedSorular = rows.map(row => {
+                            const s = {};
+                            columns.forEach((col, idx) => { s[col] = row[idx]; });
+                            
+                            return {
+                                id: s.Id || Math.floor(Math.random() * 1000000),
+                                soruResmi: s.SoruResmi || '',
+                                dersAdi: s.DersAdi || '',
+                                dersId: s.DersId || null,
+                                konuAdi: s.KonuAdi || '',
+                                konuId: s.KonuId || null,
+                                kazanimAdi: s.KazanimAdi || '',
+                                kazanimId: s.KazanimId || null,
+                                soruMetni: s.SoruMetni || '',
+                                soruMetniAyriMi: s.SoruMetniAyriMi === 1,
+                                sikkarAyriMi: s.SiklarAyriMi === 1,
+                                siklar: {
+                                    A: s.SikA || '',
+                                    B: s.SikB || '',
+                                    C: s.SikC || '',
+                                    D: s.SikD || '',
+                                    E: s.SikE || ''
+                                },
+                                dogruSik: s.DogruSik || 'A',
+                                olusturmaTarihi: s.OlusturmaTarihi || new Date().toISOString()
+                            };
+                        });
+
+                        await bankaAc(loadedSorular, bankaName);
+
+                    } catch (err) {
+                        console.error('SQL Error:', err);
+                        alert('Dosya açılamadı. Dosya bozuk olabilir.');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Dosya okunurken hata oluştu.');
+            }
+        }
+        
+        // INDEXEDDB YÖNETİMİ (ANA SAYFA İÇİN)
+        const workspaceDB = {
+            dbName: 'SoruBankasiDB',
+            version: 1,
+            storeName: 'workspace',
+            
+            open() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, this.version);
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(this.storeName)) {
+                            db.createObjectStore(this.storeName);
+                        }
+                    };
+                    request.onsuccess = (e) => resolve(e.target.result);
+                    request.onerror = (e) => reject(e);
+                });
+            },
+
+            async save(key, data) {
+                const db = await this.open();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([this.storeName], 'readwrite');
+                    const store = transaction.objectStore(this.storeName);
+                    const request = store.put(data, key);
+                    request.onsuccess = () => resolve();
+                    request.onerror = (e) => reject(e);
+                });
+            },
+
+            async clear() {
+                const db = await this.open();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([this.storeName], 'readwrite');
+                    const store = transaction.objectStore(this.storeName);
+                    const request = store.clear();
+                    request.onsuccess = () => resolve();
+                    request.onerror = (e) => reject(e);
+                });
+            }
+        };
+
+        async function yeniBankaOlustur() {
+            // IndexedDB'yi temizle
+            await workspaceDB.clear();
+            // LocalStorage temizle (eski uyumluluk için)
+            localStorage.removeItem('sorular');
+            localStorage.removeItem('bankaAdi');
+            window.location.href = '/mgtest/CreateBank';
+        }
+
+        // Banka açma işlemini güncelle
+        async function bankaAc(sorular, bankaAdi) {
+            await workspaceDB.save('sorular', sorular);
+            await workspaceDB.save('bankaAdi', bankaAdi);
+            localStorage.setItem('bankaAdi', bankaAdi); // Arayüz için tutalım
+            window.location.href = '/mgtest/CreateBank';
+        }
+    </script>
+</body>
+</html>
