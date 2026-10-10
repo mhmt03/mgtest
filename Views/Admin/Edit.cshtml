@@ -6,6 +6,11 @@
 
 <div class="container mt-5">
     <h1>Kullanıcı Düzenle: @Model.KullaniciAdi</h1>
+
+    @if (ViewBag.Error != null)
+    {
+        <div class="alert alert-danger mt-3">@ViewBag.Error</div>
+    }
     
     <form method="post" class="mt-4">
         @Html.AntiForgeryToken()
@@ -26,12 +31,24 @@
         </div>
 
         <div class="form-group mb-3">
+            <label for="yeniSifre">Yeni Şifre (Değiştirmek istemiyorsanız boş bırakın)</label>
+            <input type="password" id="yeniSifre" name="yeniSifre" class="form-control" placeholder="En az 6 karakter" />
+        </div>
+
+        <!-- SHIELD_ENCRYPTION_START -->
+        <div class="form-group mb-3">
+            <label for="VeriTabanSifresi">Veritabanı Şifresi (SQLCipher / Dosya Şifreleme Anahtarı)</label>
+            <input type="text" id="VeriTabanSifresi" name="VeriTabanSifresi" class="form-control" value="@Model.VeriTabanSifresi" required />
+        </div>
+        <!-- SHIELD_ENCRYPTION_END -->
+
+        <div class="form-group mb-3">
             <label for="KullaniciTuru">Kullanıcı Türü</label>
             <select id="KullaniciTuru" name="KullaniciTuru" class="form-control">
                 <option value="">Seçiniz...</option>
                 @foreach (var tur in ViewBag.KullaniciTurleri)
                 {
-                    <option value="@tur">@tur</option>
+                    <option value="@tur" selected="@(Model.KullaniciTuru.ToString() == tur ? "selected" : null)">@tur</option>
                 }
             </select>
         </div>
@@ -42,11 +59,11 @@
         </div>
 
         <div class="form-group mb-3">
-            <label for="AktifMi">Aktif Kullanıcı</label>
-            <input type="checkbox" id="AktifMi" name="AktifMi" class="form-check-input" @(Model.AktifMi ? "checked" : "") />
+            <label for="AktifMi" class="form-check-label">Aktif Kullanıcı</label>
+            <input type="checkbox" id="AktifMi" name="AktifMi" class="form-check-input ms-2" value="true" @(Model.AktifMi ? "checked" : "") />
         </div>
 
-        <div>
+        <div class="mt-4">
             <button type="submit" class="btn btn-primary">Kaydet</button>
             <a href="@Url.Action("Kullanicilar", "Admin")" class="btn btn-secondary">İptal</a>
         </div>

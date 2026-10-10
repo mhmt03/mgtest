@@ -19,6 +19,12 @@
             <button id="btnSelectDatabase" class="btn btn-primary btn-lg mt-2">
                 <i class="fas fa-folder-open me-2"></i> Mevcut Veritabanını Aç
             </button>
+            @if (Context.Session.GetString("KullaniciTuru") == "admin")
+            {
+                <button id="btnSelectDatabaseAdmin" class="btn btn-danger btn-lg mt-2 ms-2">
+                    <i class="fas fa-user-shield me-2"></i> Başkasının Bankasını Aç
+                </button>
+            }
             <div id="loadingIndicator" class="mt-3 d-none">
                 <div class="spinner-border text-primary" role="status"></div>
                 <p class="mt-2 text-primary" id="loadingText">Veritabanı hazırlanıyor...</p>
@@ -120,7 +126,8 @@
 
 <!-- Şifre bilgisini güvenli bir şekilde JavaScript'e aktarma -->
 <script>
-    window.USER_DB_PASSWORD = "@sifre";
+    window.USER_DB_PASSWORD = "@ViewData["Sifre"]";
+    window.USER_ROLE = "@Context.Session.GetString("KullaniciTuru")";
 </script>
 
 @section Scripts {

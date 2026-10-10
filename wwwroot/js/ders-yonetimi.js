@@ -8,6 +8,38 @@
  * 3. Backend endpoint'lerinin hazır olduğundan emin olun
  */
 
+// Global notification helper (if not already defined)
+if (typeof window.showNotification !== 'function') {
+    window.showNotification = function(message, type = 'info') {
+        const colors = {
+            success: '#28a745',
+            error: '#dc3545',
+            warning: '#ffc107',
+            info: '#17a2b8'
+        };
+
+        // Toast-like notification
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} position-fixed top-0 end-0 m-3`;
+        notification.style.zIndex = '9999';
+        notification.style.minWidth = '300px';
+        notification.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'error' ? 'x-circle' : 'info-circle'} me-2"></i>
+                <div>${message}</div>
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.style.transition = 'opacity 0.3s';
+            notification.style.opacity = '0';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    };
+}
+
 // ============================================
 // GLOBAL DEĞİŞKENLER - DERS YÖNETİMİ
 // ============================================
@@ -648,4 +680,6 @@ window.dersExcelYukle = async function(event) {
         uploadBtn.innerHTML = '<i class="bi bi-upload"></i> Excel\'den Yükle';
         event.target.value = '';
     }
-}
+}
+
+

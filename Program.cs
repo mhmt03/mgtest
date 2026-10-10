@@ -13,10 +13,15 @@ builder.Services.AddControllersWithViews();
 
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-// Proje klasöründe veritabanı dosyasının tam yolunu oluştur
+// Proje klasöründe "db" klasörü altında veritabanı dosyasının tam yolunu oluştur
 var projectDir = AppContext.BaseDirectory;
+var dbFolder = Path.Combine(projectDir, "db");
+if (!Directory.Exists(dbFolder))
+{
+    Directory.CreateDirectory(dbFolder);
+}
 var dbFileName = "mgtest.db";
-var dbPath = Path.Combine(projectDir, dbFileName);
+var dbPath = Path.Combine(dbFolder, dbFileName);
 // Connection string'i dosya yoluyla güncelle
 var finalConnectionString = $"Data Source={dbPath}";
 //Console.WriteLine($"Using database at: {dbPath}");
@@ -52,6 +57,24 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
+// Tüm işlenmeyen (unhandled) hataları db altındaki log dosyasına kaydeden global hata yakalama middleware'i
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        var logService = context.RequestServices.GetService<IFileLogService>();
+        if (logService != null)
+        {
+            await logService.LogDetay($"UNHANDLED_EXCEPTION: {ex.Message}", detay: ex.StackTrace);
+        }
+        throw;
+    }
+});
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -69,6 +92,27 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseSession();
+
+// SHIELD_ENCRYPTION_START: Middleware to log all site activities
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? "";
+    // Ignore static files, favicon, etc.
+    if (!path.StartsWith("/css") && !path.StartsWith("/js") && !path.StartsWith("/lib") && 
+        !path.StartsWith("/favicon") && !path.StartsWith("/img") && !path.EndsWith(".js") && !path.EndsWith(".css"))
+    {
+        var logService = context.RequestServices.GetService<IFileLogService>();
+        if (logService != null)
+        {
+            var username = context.Session.GetString("KullaniciAdi") ?? "Ziyaretci";
+            var ip = context.Connection.RemoteIpAddress?.ToString() ?? "Bilinmiyor";
+            var method = context.Request.Method;
+            await logService.LogSiteActivity(username, ip, method, path);
+        }
+    }
+    await next();
+});
+// SHIELD_ENCRYPTION_END
 
 app.UseAuthorization();
 

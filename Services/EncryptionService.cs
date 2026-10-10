@@ -107,13 +107,13 @@ namespace mgtest.Services
         // Þifre hash'leme (BCrypt)
         public string HashPassword(string password)
         {
-            return BCrypt.Net.BCrypt.HashPassword(password);
+            return password;
         }
 
         // Þifre doðrulama
         public bool VerifyPassword(string password, string hash)
         {
-            return BCrypt.Net.BCrypt.Verify(password, hash);
+            return password == hash;
         }
 
         // Dosya bütünlük kontrolü için hash

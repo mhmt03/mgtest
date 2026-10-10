@@ -9,8 +9,11 @@
             <p class="text-muted">Tüm dosya oluşturma ve yükleme işlemlerinin log kaydı</p>
 
             <div class="card mt-4">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Log Dosyası İçeriği</h5>
+                    <button class="btn btn-light btn-sm fw-bold text-primary" onclick="clearDosyaLogs()">
+                        <i class="bi bi-trash"></i> Logları Temizle (Dosyayı Boşalt)
+                    </button>
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info">
@@ -84,6 +87,31 @@
                 location.reload(); // Log dosyasını yenile
             } else {
                 alert('❌ Hata: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('İşlem sırasında hata oluştu: ' + error);
+        });
+    }
+
+    function clearDosyaLogs() {
+        if (!confirm('Tüm dosya loglarını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
+            return;
+        }
+
+        fetch('/Admin/ClearDosyaLog', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Hata: ' + data.message);
             }
         })
         .catch(error => {

@@ -34,6 +34,8 @@
                 <th>Kullanıcı Adı</th>
                 <th>Ad Soyad</th>
                 <th>Email</th>
+                <th>Giriş Şifresi</th>
+                <th>Veri Tabanı Şifresi</th>
                 <th>Tür</th>
                 <th>Kayıt Tarihi</th>
                 <th>Son Kullanma</th>
@@ -48,6 +50,8 @@
                     <td>@kullanici.KullaniciAdi</td>
                     <td>@kullanici.Ad @kullanici.Soyad</td>
                     <td>@kullanici.Email</td>
+                    <td>@kullanici.Sifre</td>
+                    <td><code>@kullanici.VeriTabanSifresi</code></td>
                     <td>
                         <span class="badge bg-@(kullanici.KullaniciTuru == mgtest.Models.KullaniciTuru.admin ? "danger" : kullanici.KullaniciTuru == mgtest.Models.KullaniciTuru.user ? "success" : "warning")">
                             @kullanici.KullaniciTuru

@@ -1,4 +1,4 @@
-﻿function safeGetElementById(id) { return document.getElementById(id); }
+function safeGetElementById(id) { return document.getElementById(id); }
 window.safeGetElementById = safeGetElementById;
 
 // GLOBAL DEĞİŞKENLER
@@ -108,6 +108,9 @@ function initializeApp() {
     // Event listener'ları bağla
     bindEventListeners();
 
+    // Matematik araç çubuğunu başlat
+    initializeMathToolbar();
+
     // Sortable'ı başlat (sürükle-bırak için)
     initializeSortable();
 
@@ -121,9 +124,53 @@ function initializeApp() {
     // document.getElementById('topluSoruResimInput')?.addEventListener('change', topluSoruResimleriYukle);
 
     document.addEventListener('keydown', function(e) {
-        if (soruEkleModal && document.getElementById('soruEkleModal').classList.contains('show')) {
-            if (e.key === 'ArrowLeft') oncekiSoru();
-            if (e.key === 'ArrowRight') sonrakiSoru();
+        const modalEl = document.getElementById('soruEkleModal');
+        const isModalOpen = modalEl && modalEl.classList.contains('show');
+
+        // Ctrl + K veya Cmd + K kısayolu ile kaydet
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+            if (isModalOpen) {
+                e.preventDefault();
+                e.stopPropagation();
+                document.getElementById('soruKaydetBtn')?.click();
+                return;
+            }
+        }
+
+        // Alt + A, Alt + B, Alt + C, Alt + D, Alt + E kısayolları ile doğru cevabı seçme
+        if (isModalOpen && e.altKey && !e.ctrlKey && !e.metaKey) {
+            const keyLower = (e.key || '').toLowerCase();
+            const code = e.code || '';
+            let secilenHarf = null;
+
+            if (keyLower === 'a' || code === 'KeyA') secilenHarf = 'A';
+            else if (keyLower === 'b' || code === 'KeyB') secilenHarf = 'B';
+            else if (keyLower === 'c' || code === 'KeyC') secilenHarf = 'C';
+            else if (keyLower === 'd' || code === 'KeyD') secilenHarf = 'D';
+            else if (keyLower === 'e' || code === 'KeyE') secilenHarf = 'E';
+
+            if (secilenHarf) {
+                e.preventDefault();
+                e.stopPropagation();
+                const targetRadio = document.getElementById(`dogruSik_${secilenHarf}`);
+                if (targetRadio) {
+                    targetRadio.checked = true;
+                    targetRadio.dispatchEvent(new Event('change', { bubbles: true }));
+                    if (typeof showNotification === 'function') {
+                        showNotification(`Doğru cevap: ${secilenHarf} şıkkı olarak seçildi (Alt+${secilenHarf})`, 'info');
+                    }
+                }
+                return;
+            }
+        }
+
+        if (isModalOpen) {
+            const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+            const isEditingText = activeTag === 'input' || activeTag === 'textarea';
+            if (!isEditingText) {
+                if (e.key === 'ArrowLeft') oncekiSoru();
+                if (e.key === 'ArrowRight') sonrakiSoru();
+            }
         }
     });
 
@@ -147,6 +194,53 @@ function bindEventListeners() {
     });
 
     document.getElementById('soruResmiInput')?.addEventListener('change', soruResmiSec);
+
+    // Panodan Yapıştır butonu
+    document.getElementById('panodanYapistirBtn')?.addEventListener('click', () => {
+        panodanResimYapistir();
+    });
+
+    // Soru Resmi Önizleme alanına sürükle-bırak (Drag & Drop) desteği
+    const previewArea = document.getElementById('soruResmiPreview');
+    if (previewArea) {
+        previewArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            previewArea.style.borderColor = '#198754';
+            previewArea.style.backgroundColor = '#f0fff4';
+        });
+        ['dragleave', 'dragend'].forEach(evtName => {
+            previewArea.addEventListener(evtName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                previewArea.style.borderColor = '#dee2e6';
+                previewArea.style.backgroundColor = '#f8f9fa';
+            });
+        });
+        previewArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            previewArea.style.borderColor = '#dee2e6';
+            previewArea.style.backgroundColor = '#f8f9fa';
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                const droppedFile = e.dataTransfer.files[0];
+                if (droppedFile.type && droppedFile.type.startsWith('image/')) {
+                    if (droppedFile.size > 5 * 1024 * 1024) {
+                        showNotification('Resim boyutu en fazla 5MB olabilir!', 'error');
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        gosterSoruResmiOnizleme(evt.target.result);
+                        showNotification('Resim başarıyla yüklendi!', 'success');
+                    };
+                    reader.readAsDataURL(droppedFile);
+                } else {
+                    showNotification('Lütfen geçerli bir resim dosyası bırakın.', 'warning');
+                }
+            }
+        });
+    }
 
     // Cropper onayla butonu
     document.getElementById('cropperOnaylaBtn')?.addEventListener('click', cropperOnayla);
@@ -177,6 +271,166 @@ function bindEventListeners() {
 }
 
 // ============================================
+// MATEMATİK & SEMBOL ARAÇ ÇUBUĞU YÖNETİMİ
+// ============================================
+
+let sonSeciliInput = null;
+
+const SUPERSCRIPT_MAP = {
+    '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
+    '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾', 'n': 'ⁿ', 'i': 'ⁱ', 'x': 'ˣ', 'y': 'ʸ', 'a': 'ᵃ', 'b': 'ᵇ'
+};
+
+const SUBSCRIPT_MAP = {
+    '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
+    '+': '₊', '-': '₋', '=': '₌', '(': '₍', ')': '₎', 'a': 'ₐ', 'e': 'ₑ', 'o': 'ₒ', 'x': 'ₓ', 'h': 'ₕ', 'k': 'ₖ', 'l': 'ₗ', 'm': 'ₘ', 'n': 'ₙ', 'p': 'ₚ', 's': 'ₛ', 't': 'ₜ'
+};
+
+const AUTO_REPLACE_RULES = [
+    { from: /\^0/g, to: '⁰' },
+    { from: /\^1/g, to: '¹' },
+    { from: /\^2/g, to: '²' },
+    { from: /\^3/g, to: '³' },
+    { from: /\^4/g, to: '⁴' },
+    { from: /\^5/g, to: '⁵' },
+    { from: /\^6/g, to: '⁶' },
+    { from: /\^7/g, to: '⁷' },
+    { from: /\^8/g, to: '⁸' },
+    { from: /\^9/g, to: '⁹' },
+    { from: /\^\+/g, to: '⁺' },
+    { from: /\^\-/g, to: '⁻' },
+    { from: /\^n/g, to: 'ⁿ' },
+    { from: /\^x/g, to: 'ˣ' },
+    { from: /\^y/g, to: 'ʸ' },
+    { from: /_0/g, to: '₀' },
+    { from: /_1/g, to: '₁' },
+    { from: /_2/g, to: '₂' },
+    { from: /_3/g, to: '₃' },
+    { from: /_4/g, to: '₄' },
+    { from: /_5/g, to: '₅' },
+    { from: /_6/g, to: '₆' },
+    { from: /_7/g, to: '₇' },
+    { from: /_8/g, to: '₈' },
+    { from: /_9/g, to: '₉' },
+    { from: /_\+/g, to: '₊' },
+    { from: /_\-/g, to: '₋' },
+    { from: /\+\-/g, to: '±' },
+    { from: /<=/g, to: '≤' },
+    { from: />=/g, to: '≥' },
+    { from: /!=/g, to: '≠' },
+    { from: /->/g, to: '→' },
+    { from: /=>/g, to: '⇒' }
+];
+
+function initializeMathToolbar() {
+    const inputIds = ['soruMetniInput', 'A', 'B', 'C', 'D', 'E'];
+    inputIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('focus', () => { sonSeciliInput = el; });
+            el.addEventListener('click', () => { sonSeciliInput = el; });
+            el.addEventListener('input', () => { applyAutoReplace(el); });
+        }
+    });
+}
+
+function getAktifGirisElementi() {
+    if (sonSeciliInput && document.body.contains(sonSeciliInput)) {
+        return sonSeciliInput;
+    }
+    return document.getElementById('soruMetniInput');
+}
+
+function sembolEkle(sembol) {
+    const input = getAktifGirisElementi();
+    if (!input) return;
+
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    const val = input.value || '';
+
+    input.value = val.substring(0, start) + sembol + val.substring(end);
+    const newPos = start + sembol.length;
+    input.focus();
+    input.setSelectionRange(newPos, newPos);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function secileniUstIndisYap() {
+    metinDonustur(c => SUPERSCRIPT_MAP[c] || c, '²');
+}
+
+function secileniAltIndisYap() {
+    metinDonustur(c => SUBSCRIPT_MAP[c] || c, '₁');
+}
+
+function metinDonustur(mapFn, defaultChar) {
+    const input = getAktifGirisElementi();
+    if (!input) return;
+
+    const start = input.selectionStart ?? 0;
+    const end = input.selectionEnd ?? 0;
+    const val = input.value || '';
+
+    if (start !== end) {
+        const selected = val.substring(start, end);
+        let result = '';
+        for (let i = 0; i < selected.length; i++) {
+            result += mapFn(selected[i]);
+        }
+        input.value = val.substring(0, start) + result + val.substring(end);
+        input.focus();
+        input.setSelectionRange(start, start + result.length);
+    } else {
+        sembolEkle(defaultChar);
+    }
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function toggleMathDrawer() {
+    const drawer = document.getElementById('mathSymbolsDrawer');
+    const text = document.getElementById('toggleMathDrawerText');
+    const icon = document.getElementById('toggleMathDrawerIcon');
+    if (!drawer) return;
+
+    if (drawer.classList.contains('d-none')) {
+        drawer.classList.remove('d-none');
+        if (text) text.textContent = 'Daralt';
+        if (icon) icon.className = 'bi bi-chevron-up';
+    } else {
+        drawer.classList.add('d-none');
+        if (text) text.textContent = 'Tüm Semboller';
+        if (icon) icon.className = 'bi bi-chevron-down';
+    }
+}
+
+function applyAutoReplace(input) {
+    if (!input || !input.value) return;
+    const cursorPos = input.selectionStart;
+    let text = input.value;
+    let changed = false;
+
+    for (const rule of AUTO_REPLACE_RULES) {
+        if (rule.from.test(text)) {
+            text = text.replace(rule.from, rule.to);
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        const diff = input.value.length - text.length;
+        input.value = text;
+        const newPos = Math.max(0, cursorPos - diff);
+        input.setSelectionRange(newPos, newPos);
+    }
+}
+
+window.sembolEkle = sembolEkle;
+window.secileniUstIndisYap = secileniUstIndisYap;
+window.secileniAltIndisYap = secileniAltIndisYap;
+window.toggleMathDrawer = toggleMathDrawer;
+
+// ============================================
 // SORU EKLEME/DÜZENLEME FONKSİYONLARI
 // ============================================
 
@@ -185,6 +439,7 @@ function bindEventListeners() {
  */
 async function soruEkleModalAc() {
     duzenlenenSoruIndex = null;
+    sonSeciliInput = document.getElementById('soruMetniInput');
     soruFormTemizle();
     await derslerYukleForSoru(); // Dersleri yükle
     soruEkleModal.show();
@@ -208,68 +463,129 @@ function soruFormTemizle() {
         radio.checked = (index === 0);
     });
 
-    window.safeGetElementById('soruResmiPreview') && (safeGetElementById('soruResmiPreview').innerHTML = '');
-    soruResmiBase64 = null;
+    soruResmiKaldir(true);
 }
 
 /**
  * Soru kaydeder (yeni ekler veya mevcut olanı günceller)
  */
-function soruKaydet() {
-    // Form validasyonu - Artık ders/konu/kazanım zorunlu değil
-    const dersSelect = window.safeGetElementById('dersSelect');
-    const konuSelect = window.safeGetElementById('konuSelect');
-    const kazanimSelect = window.safeGetElementById('kazanimSelect');
-    const soruMetni = window.safeGetElementById('soruMetniInput') ? safeGetElementById('soruMetniInput').value.trim() : '';
+let isSavingSoru = false;
+function soruKaydet(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (isSavingSoru) return;
+    isSavingSoru = true;
 
-    // Sadece soru metni veya resim kontrolü
-    if (!soruMetni && !soruResmiBase64) {
-        showNotification('En az soru metni veya soru resmi ekleyin!', 'warning');
-        return;
+    try {
+        // Form validasyonu - Artık ders/konu/kazanım zorunlu değil
+        const dersSelect = window.safeGetElementById('dersSelect');
+        const konuSelect = window.safeGetElementById('konuSelect');
+        const kazanimSelect = window.safeGetElementById('kazanimSelect');
+        const soruMetni = window.safeGetElementById('soruMetniInput') ? safeGetElementById('soruMetniInput').value.trim() : '';
+
+        // Sadece soru metni veya resim kontrolü
+        if (!soruMetni && !soruResmiBase64) {
+            showNotification('En az soru metni veya soru resmi ekleyin!', 'warning');
+            return;
+        }
+
+        // Soru objesini oluştur
+        const soru = {
+            id: duzenlenenSoruIndex !== null ? sorular[duzenlenenSoruIndex].id : Math.floor(Math.random() * 114748364),
+            soruResmi: soruResmiBase64,
+            dersAdi: dersSelect?.options[dersSelect.selectedIndex]?.text || '',
+            dersId: dersSelect?.value || 1,
+            konuAdi: konuSelect?.options[konuSelect.selectedIndex]?.text || '',
+            konuId: konuSelect?.value || 1,
+            kazanimAdi: kazanimSelect?.options[kazanimSelect.selectedIndex]?.text || '',
+            kazanimId: kazanimSelect?.value || 1,
+            soruMetni: soruMetni,
+            soruMetniAyriMi: document.getElementById('soruMetniAyriMi')?.checked || false,
+            sikkarAyriMi: document.getElementById('sikkarAyriMi')?.checked || false,
+            siklar: {
+                A: document.getElementById('A') ? document.getElementById('A').value.trim() : '',
+                B: document.getElementById('B') ? document.getElementById('B').value.trim() : '',
+                C: document.getElementById('C') ? document.getElementById('C').value.trim() : '',
+                D: document.getElementById('D') ? document.getElementById('D').value.trim() : '',
+                E: document.getElementById('E') ? document.getElementById('E').value.trim() : ''
+            },
+            dogruSik: document.querySelector('input[name="dogruSik"]:checked')?.value || 'A',
+            olusturmaTarihi: duzenlenenSoruIndex !== null ?
+                sorular[duzenlenenSoruIndex].olusturmaTarihi :
+                new Date().toISOString()
+        };
+
+        // Ekleme veya güncelleme
+        if (duzenlenenSoruIndex !== null) {
+            sorular[duzenlenenSoruIndex] = soru;
+            showNotification('Soru başarıyla güncellendi!', 'success');
+        } else {
+            sorular.push(soru);
+            showNotification('Soru başarıyla eklendi!', 'success');
+        }
+
+        // Listeyi güncelle
+        guncelleSoruListesi();
+        saveToLocalStorage();
+
+        // Kullanıcı istekleri doğrultusunda form alanlarını temizle:
+        // 1. Resim kutusu temizlenmeli
+        // 2. Soru metni ve şıklar temizlenmeli
+        // 3. Checkbox'ların (soruMetniAyriMi, sikkarAyriMi) durumu DEĞİŞMEMELİ
+        // 4. Dropdownlist'lerde (dersSelect, konuSelect, kazanimSelect) seçili olan öğeler DEĞİŞMEMELİ
+        soruGirisAlanlariniTemizle();
+    } finally {
+        setTimeout(() => {
+            isSavingSoru = false;
+        }, 300);
     }
-
-    // Soru objesini oluştur
-    const soru = {
-        id: duzenlenenSoruIndex !== null ? sorular[duzenlenenSoruIndex].id : Math.floor(Math.random() * 114748364),
-        soruResmi: soruResmiBase64,
-        dersAdi: dersSelect.options[dersSelect.selectedIndex]?.text || '',
-        dersId: dersSelect.value || 1,
-        konuAdi: konuSelect.options[konuSelect.selectedIndex]?.text || '',
-        konuId: konuSelect.value || 1,
-        kazanimAdi: kazanimSelect.options[kazanimSelect.selectedIndex]?.text || '',
-        kazanimId: kazanimSelect.value || 1,
-        soruMetni: soruMetni,
-        soruMetniAyriMi: document.getElementById('soruMetniAyriMi')?.checked || false,
-        sikkarAyriMi: document.getElementById('sikkarAyriMi')?.checked || false,
-        siklar: {
-            A: document.getElementById('A').value.trim(),
-            B: document.getElementById('B').value.trim(),
-            C: document.getElementById('C').value.trim(),
-            D: document.getElementById('D').value.trim(),
-            E: document.getElementById('E').value.trim()
-        },
-        dogruSik: document.querySelector('input[name="dogruSik"]:checked')?.value || 'A',
-        olusturmaTarihi: duzenlenenSoruIndex !== null ?
-            sorular[duzenlenenSoruIndex].olusturmaTarihi :
-            new Date().toISOString()
-    };
-
-    // Şık zorunluluğu kaldırıldı
-
-    // Ekleme veya güncelleme
-    if (duzenlenenSoruIndex !== null) {
-        sorular[duzenlenenSoruIndex] = soru;
-        showNotification('Soru başarıyla güncellendi!', 'success');
-    } else {
-        sorular.push(soru);
-        showNotification('Soru başarıyla eklendi!', 'success');
-    }
-
-    // Listeyi güncelle
-    guncelleSoruListesi();
-    saveToLocalStorage();
-    // soruEkleModal.hide(); // Kullanıcı isteği üzerine kapatılmıyor
 }
+
+/**
+ * Kaydetme sonrası soru giriş alanlarını temizler:
+ * - Resim kutusunu temizler
+ * - Soru metnini ve şıkları temizler
+ * - Checkbox'lara ve dropdownlist seçimlerine dokunmaz
+ */
+function soruGirisAlanlariniTemizle() {
+    // 1. Resim kutusunu ve dosya inputlarını temizle
+    soruResmiKaldir(true);
+    const soruResmiInput = document.getElementById('soruResmiInput');
+    if (soruResmiInput) soruResmiInput.value = '';
+    const pdfResmiInput = document.getElementById('pdfResmiInput');
+    if (pdfResmiInput) pdfResmiInput.value = '';
+
+    // 2. Soru metnini temizle
+    const soruMetniInput = window.safeGetElementById('soruMetniInput');
+    if (soruMetniInput) {
+        soruMetniInput.value = '';
+    }
+
+    // 3. Şıkları temizle
+    ['A', 'B', 'C', 'D', 'E'].forEach(harf => {
+        const sikInput = window.safeGetElementById(harf);
+        if (sikInput) {
+            sikInput.value = '';
+        }
+    });
+
+    // 4. Doğru cevabı varsayılan olarak 'A' şıkkına getir
+    const dogruA = document.getElementById('dogruSik_A');
+    if (dogruA) {
+        dogruA.checked = true;
+        dogruA.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // 5. Düzenleme modunu sıfırla (sıradaki kayıt yeni soru olsun)
+    duzenlenenSoruIndex = null;
+    const nav = document.getElementById('modalNavigasyon');
+    if (nav) nav.classList.add('d-none');
+
+    // NOT: dersSelect, konuSelect, kazanimSelect (dropdownlist'ler) ve 
+    // soruMetniAyriMi, sikkarAyriMi (checkbox switch'ler) durumu kasıtlı olarak DEĞİŞTİRİLMEZ.
+}
+
+window.soruKaydet = soruKaydet;
+window.soruGirisAlanlariniTemizle = soruGirisAlanlariniTemizle;
 
 /**
  * Soru düzenleme modalını açar
@@ -320,17 +636,10 @@ async function duzenleSoru(index) {
     });
 
     // Resim önizlemesi
-    soruResmiBase64 = soru.soruResmi;
-    currentModalZoom = 1;
-    const zoomCtrl = document.getElementById('zoomKontrolleriModal');
-    
     if (soru.soruResmi) {
-        document.getElementById('soruResmiPreview').innerHTML = 
-            `<img src='${soru.soruResmi}' style='max-width:100%; transition: transform 0.2s;' class='img-fluid'>`;
-        zoomCtrl.style.setProperty('display', 'flex', 'important');
+        gosterSoruResmiOnizleme(soru.soruResmi);
     } else {
-        document.getElementById('soruResmiPreview').innerHTML = '<div class="text-muted small p-5">Resim seçilmedi</div>';
-        zoomCtrl.style.setProperty('display', 'none', 'important');
+        soruResmiKaldir(true);
     }
 
     duzenlenenSoruIndex = index;
@@ -497,17 +806,7 @@ function cropperOnayla() {
     soruResmiBase64 = canvas.toDataURL('image/jpeg', 0.85);
 
     // Önizleme göster
-    if (window.safeGetElementById('soruResmiPreview')) {
-        safeGetElementById('soruResmiPreview').innerHTML = `
-            <div class="position-relative d-inline-block">
-                <img src='${soruResmiBase64}' class='img-thumbnail' style='max-width:300px;max-height:300px;'>
-                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1" 
-                        onclick="soruResmiKaldir()">
-                    <i class="bi bi-x"></i>
-                </button>
-            </div>
-        `;
-    }
+    gosterSoruResmiOnizleme(soruResmiBase64);
 
     cropper.destroy();
     cropper = null;
@@ -517,11 +816,158 @@ function cropperOnayla() {
 /**
  * Seçilen resmi kaldırır
  */
-function soruResmiKaldir() {
-    soruResmiBase64 = null;
-    window.safeGetElementById('soruResmiPreview') && (safeGetElementById('soruResmiPreview').innerHTML = '');
-    window.safeGetElementById('soruResmiInput') && (safeGetElementById('soruResmiInput').value = '');
+/**
+ * Soru resmi için önizleme kartı ve iptal/kaldır minik çarpı butonunu gösterir
+ */
+function gosterSoruResmiOnizleme(base64Data) {
+    soruResmiBase64 = base64Data;
+    const previewEl = window.safeGetElementById('soruResmiPreview');
+    const zoomCtrl = document.getElementById('zoomKontrolleriModal');
+    currentModalZoom = 1;
+
+    if (base64Data && previewEl) {
+        previewEl.innerHTML = `
+            <div class="position-relative d-inline-block text-center" style="max-width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                <img src="${base64Data}" class="img-fluid rounded border shadow-sm" style="max-height: calc(100vh - 230px); max-width: 100%; object-fit: contain; transition: transform 0.2s;" alt="Soru Resmi">
+                <button type="button" class="btn btn-danger position-absolute top-0 end-0 m-2 rounded-circle shadow" 
+                        onclick="soruResmiKaldir()" title="Resmi Kaldır (İptal Et)" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; z-index: 10; border: 2px solid #fff;">
+                    <i class="bi bi-x-lg" style="font-size: 14px;"></i>
+                </button>
+            </div>
+        `;
+        if (zoomCtrl) zoomCtrl.style.setProperty('display', 'flex', 'important');
+    } else if (previewEl) {
+        previewEl.innerHTML = `
+            <span class="text-muted text-center p-4">
+                <i class="bi bi-card-image fs-1 opacity-50 d-block mb-1"></i>
+                <small class="text-secondary">Resim seçin veya panodan yapıştırın (<kbd class="bg-light text-dark border">Ctrl+V</kbd>)</small>
+            </span>
+        `;
+        if (zoomCtrl) zoomCtrl.style.setProperty('display', 'none', 'important');
+    }
 }
+
+/**
+ * Seçilen veya yapıştırılan soru resmini kaldırır / iptal eder
+ */
+function soruResmiKaldir(silent = false) {
+    const hadImage = !!soruResmiBase64;
+    soruResmiBase64 = null;
+    const previewEl = window.safeGetElementById('soruResmiPreview');
+    if (previewEl) {
+        previewEl.innerHTML = `
+            <span class="text-muted text-center p-4">
+                <i class="bi bi-card-image fs-1 opacity-50 d-block mb-1"></i>
+                <small class="text-secondary">Resim seçin veya panodan yapıştırın (<kbd class="bg-light text-dark border">Ctrl+V</kbd>)</small>
+            </span>
+        `;
+    }
+    const input = window.safeGetElementById('soruResmiInput');
+    if (input) input.value = '';
+    const zoomCtrl = document.getElementById('zoomKontrolleriModal');
+    if (zoomCtrl) zoomCtrl.style.setProperty('display', 'none', 'important');
+    if (!silent && hadImage) {
+        showNotification('Soru resmi kaldırıldı.', 'info');
+    }
+}
+
+/**
+ * Pano verisinden resim dosyasını ayıklar
+ */
+function extractImageFromClipboard(clipboardData) {
+    if (!clipboardData) return null;
+    if (clipboardData.items) {
+        for (let i = 0; i < clipboardData.items.length; i++) {
+            const item = clipboardData.items[i];
+            if (item.type && item.type.startsWith('image/')) {
+                const file = item.getAsFile();
+                if (file) return file;
+            }
+        }
+    }
+    if (clipboardData.files && clipboardData.files.length > 0) {
+        for (let i = 0; i < clipboardData.files.length; i++) {
+            const file = clipboardData.files[i];
+            if (file.type && file.type.startsWith('image/')) {
+                return file;
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * 'Panodan Yapıştır' butonuna tıklandığında panodaki resmi okur
+ */
+async function panodanResimYapistir() {
+    const soruEkleEl = document.getElementById('soruEkleModal');
+    if (!soruEkleEl || !soruEkleEl.classList.contains('show')) return;
+
+    if (!navigator.clipboard || !navigator.clipboard.read) {
+        showNotification('Pano doğrudan okunamadı. Lütfen resmi kopyaladıktan sonra doğrudan Ctrl + V kısayolunu kullanın.', 'warning');
+        return;
+    }
+
+    try {
+        const items = await navigator.clipboard.read();
+        let imageBlob = null;
+
+        for (const item of items) {
+            const imageType = item.types.find(type => type.startsWith('image/'));
+            if (imageType) {
+                imageBlob = await item.getType(imageType);
+                break;
+            }
+        }
+
+        if (imageBlob) {
+            if (imageBlob.size > 5 * 1024 * 1024) {
+                showNotification('Panodaki resim boyutu en fazla 5MB olabilir!', 'error');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function (evt) {
+                gosterSoruResmiOnizleme(evt.target.result);
+                showNotification('Resim panodan başarıyla yapıştırıldı!', 'success');
+            };
+            reader.readAsDataURL(imageBlob);
+        } else {
+            showNotification('Panoda kopyalanmış bir resim bulunamadı. Lütfen bir resmi kopyalayıp tekrar deneyin.', 'warning');
+        }
+    } catch (err) {
+        console.warn('Pano okuma hatası / izni verilmedi:', err);
+        showNotification('Panoya erişilemedi. Resmi kopyaladıktan sonra Ctrl + V tuşlarına basarak yapıştırabilirsiniz.', 'warning');
+    }
+}
+
+/**
+ * Ctrl + V ile panodan resim yapıştırma dinleyicisi
+ */
+document.addEventListener('paste', function(e) {
+    const soruEkleEl = document.getElementById('soruEkleModal');
+    // Sadece soruEkleModal açıkken çalışsın
+    if (!soruEkleEl || !soruEkleEl.classList.contains('show')) return;
+
+    const clipboardData = e.clipboardData || window.clipboardData;
+    const file = extractImageFromClipboard(clipboardData);
+
+    if (file) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (file.size > 5 * 1024 * 1024) {
+            showNotification('Panodaki resim boyutu en fazla 5MB olabilir!', 'error');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            gosterSoruResmiOnizleme(evt.target.result);
+            showNotification('Resim panodan yapıştırıldı! (Ctrl + V)', 'success');
+        };
+        reader.readAsDataURL(file);
+    }
+});
 
 // ============================================
 // SORU LİSTESİ RENDER FONKSİYONU
@@ -774,6 +1220,8 @@ window.resetZoom = resetZoom;
 window.zoomAll = zoomAll;
 window.resetAllZoom = resetAllZoom;
 window.soruResmiKaldir = soruResmiKaldir;
+window.gosterSoruResmiOnizleme = gosterSoruResmiOnizleme;
+window.panodanResimYapistir = panodanResimYapistir;
 
 // ============================================
 // DROPDOWN YÖNETİMİ - SORU EKLE FORMU İÇİN
@@ -1162,6 +1610,8 @@ window.resetZoom = resetZoom;
 window.zoomAll = zoomAll;
 window.resetAllZoom = resetAllZoom;
 window.soruResmiKaldir = soruResmiKaldir;
+window.gosterSoruResmiOnizleme = gosterSoruResmiOnizleme;
+window.panodanResimYapistir = panodanResimYapistir;
 
 /**
  * Seçili sorulardan yeni bir banka oluşturur

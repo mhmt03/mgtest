@@ -1,4 +1,4 @@
-﻿/**
+/**
  * İstemci Tabanlı Veritabanı Servisi
  * File System Access API + sql.js
  * (GELİŞTİRME MODU: Şifreleme geçici olarak devredışı bırakıldı)
@@ -15,7 +15,7 @@ let seciliKazanimId = null;
 // Başlangıç: sql.js'yi yükle
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const sql = await initSqlJs({ locateFile: file => /lib/sqljs/ + file });
+        const sql = await initSqlJs({ locateFile: file => '/lib/sqljs/' + file });
         SQL = sql;
         console.log("sql.js hazır.");
     } catch (e) {
@@ -28,6 +28,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function bindEvents() {
     document.getElementById('btnSelectDatabase').addEventListener('click', openDatabase);
+    
+    // SHIELD_ENCRYPTION_START
+    const btnAdmin = document.getElementById('btnSelectDatabaseAdmin');
+    if (btnAdmin) {
+        btnAdmin.addEventListener('click', async () => {
+            window.OPEN_WITH_MANUAL_PASSWORD = true;
+            await openDatabase();
+        });
+    }
+    // SHIELD_ENCRYPTION_END
+
     document.getElementById('btnCloseDatabase').addEventListener('click', closeDatabase);
     document.getElementById('btnCreateNewBank')?.addEventListener('click', createNewDatabase);
 
@@ -83,13 +94,18 @@ async function createNewDatabase() {
 
     try {
         // Kullanıcıdan kaydedilecek yeri seçmesini iste
-        const newFileHandle = await window.showSaveFilePicker({
-            suggestedName: bankaAdi.endsWith('.mg') ? bankaAdi : bankaAdi + '.mg',
-            types: [{
-                description: 'Soru Bankası Dosyası',
-                accept: { 'application/octet-stream': ['.mg'] },
-            }],
-        });
+        let fileName = bankaAdi.endsWith('.mg') ? bankaAdi : bankaAdi + '.mg';
+        let newFileHandle = null;
+        if (window.showSaveFilePicker) {
+            newFileHandle = await window.showSaveFilePicker({
+                suggestedName: fileName,
+                types: [{
+                    description: 'Soru Bankası Dosyası',
+                    accept: { 'application/octet-stream': ['.mg'] },
+                }],
+            });
+            fileName = newFileHandle.name;
+        }
 
         setLoader(true, "Veritabanı oluşturuluyor...");
 
@@ -105,9 +121,59 @@ async function createNewDatabase() {
 
         // Kaydet
         const dbData = db.export();
-        const writable = await newFileHandle.createWritable();
-        await writable.write(dbData);
-        await writable.close();
+        // SHIELD_ENCRYPTION_START: Encrypt SQLite file with user's db password using AES-GCM
+        let dataToWrite = dbData;
+        let passwordToUse = window.USER_DB_PASSWORD;
+
+        // Admin ise yeni banka oluştururken şifre sor
+        if (window.USER_ROLE === "admin") {
+            const customPassword = prompt("Yeni soru bankasını şifrelemek için bir şifre girin (Boş bırakırsanız varsayılan şifreniz kullanılır):");
+            if (customPassword !== null && customPassword.trim() !== "") {
+                passwordToUse = customPassword;
+                window.USER_DB_PASSWORD = customPassword; // Bu oturum için şifreyi güncelle
+            }
+        }
+
+        if (passwordToUse) {
+            const formData = new FormData();
+            const blob = new Blob([dbData.buffer], { type: 'application/octet-stream' });
+            formData.append('file', blob, 'banka.mg');
+            formData.append('password', passwordToUse);
+            try {
+                const res = await fetch('/mgtest/EncryptBankFile', { method: 'POST', body: formData });
+                if (res.ok) {
+                    const arr = await res.arrayBuffer();
+                    dataToWrite = new Uint8Array(arr);
+                } else {
+                    console.error("Şifreleme başarısız:", await res.text());
+                    alert("Dosya şifrelenemedi, düz metin (şifresiz) olarak kaydedilecek.");
+                }
+            } catch (e) { console.error("Şifreleme isteği başarısız", e); }
+        }
+        // SHIELD_ENCRYPTION_END
+        if (newFileHandle) {
+            const writable = await newFileHandle.createWritable();
+            await writable.write(dataToWrite);
+            await writable.close();
+        } else {
+            const blob = new Blob([dataToWrite], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // SHIELD_ENCRYPTION_START: Log client-side CREATE action to server
+        fetch('/mgtest/LogClientAction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'CREATE', dosyaId: fileName, bankaAdi: bankaAdi, sifre: passwordToUse || "" })
+        }).catch(e => console.error("Client log hatası:", e));
+        // SHIELD_ENCRYPTION_END
 
         // Sistemi bu dosyaya bağla
         fileHandle = newFileHandle;
@@ -145,13 +211,68 @@ async function openDatabase() {
         });
         fileHandle = handles;
 
-        setLoader(true, "Veritabanı açılıyor (Şifresiz Mod)...");
+        setLoader(true, "Veritabanı açılıyor ve şifresi çözülüyor...");
 
         const file = await fileHandle.getFile();
         const rawData = await file.arrayBuffer();
 
-        // ŞİFRELEME KAPALI: Doğrudan veriyi okuyoruz
-        currentDb = new SQL.Database(new Uint8Array(rawData));
+        // SHIELD_ENCRYPTION_START: Decrypt the SQLite file using user's db password via AES-GCM
+        let dbBuffer = rawData;
+        let passwordToUse = window.USER_DB_PASSWORD || "";
+
+        if (window.OPEN_WITH_MANUAL_PASSWORD) {
+            const manualPassword = prompt("Lütfen açmak istediğiniz veritabanının şifresini girin:");
+            if (manualPassword) {
+                passwordToUse = manualPassword;
+            } else {
+                showAlert("Şifre girilmedi. Dosya açılamadı.", "danger");
+                window.OPEN_WITH_MANUAL_PASSWORD = false;
+                return;
+            }
+        }
+
+        if (window.CryptoService && passwordToUse) {
+            try {
+                dbBuffer = await window.CryptoService.decryptFile(rawData, passwordToUse);
+                window.USER_DB_PASSWORD = passwordToUse; // Bu oturum için şifreyi güncelle (Kaydederken de bu kullanılsın)
+            } catch (e) {
+                console.error("Şifre çözme hatası:", e);
+                // Otomatik başarısız olduysa el ile şifre soralım (hata vermeden önce)
+                if (!window.OPEN_WITH_MANUAL_PASSWORD) {
+                    const manualPassword = prompt("Otomatik şifre çözme başarısız oldu. Lütfen veritabanı şifresini elle girin:");
+                    if (manualPassword) {
+                        try {
+                            dbBuffer = await window.CryptoService.decryptFile(rawData, manualPassword);
+                            window.USER_DB_PASSWORD = manualPassword; // Oturum şifresini güncelle
+                        } catch (manualE) {
+                            console.error("Manuel şifre çözme hatası:", manualE);
+                            showAlert("Girdiğiniz şifre de geçersiz. Dosya açılamadı.", "danger");
+                            window.OPEN_WITH_MANUAL_PASSWORD = false;
+                            return;
+                        }
+                    } else {
+                        showAlert("Dosya şifreli ve şifre girilmedi. Dosya açılamadı.", "danger");
+                        window.OPEN_WITH_MANUAL_PASSWORD = false;
+                        return;
+                    }
+                } else {
+                    showAlert("Şifre çözülemedi. Girdiğiniz şifre yanlış olabilir.", "danger");
+                    window.OPEN_WITH_MANUAL_PASSWORD = false;
+                    return;
+                }
+            }
+        }
+        window.OPEN_WITH_MANUAL_PASSWORD = false; // flag sıfırla
+        currentDb = new SQL.Database(new Uint8Array(dbBuffer));
+        // SHIELD_ENCRYPTION_END
+
+        // SHIELD_ENCRYPTION_START: Log client-side OPEN action to server
+        fetch('/mgtest/LogClientAction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'OPEN', dosyaId: fileHandle.name, bankaAdi: fileHandle.name, sifre: passwordToUse || "" })
+        }).catch(e => console.error("Client log hatası:", e));
+        // SHIELD_ENCRYPTION_END
 
         // Tablo kontrolü (Ders tablosu var mı?)
         try {
@@ -206,10 +327,36 @@ async function saveDatabase() {
         // sql.js'den binary datayı al
         const dbData = currentDb.export();
         
-        // ŞİFRELEME KAPALI: Doğrudan yazıyoruz
+        // SHIELD_ENCRYPTION_START: Encrypt SQLite file with user's db password using AES-GCM
+        let dataToWrite = dbData;
+        if (window.USER_DB_PASSWORD) {
+            const formData = new FormData();
+            const blob = new Blob([dbData.buffer], { type: 'application/octet-stream' });
+            formData.append('file', blob, 'banka.mg');
+            formData.append('password', window.USER_DB_PASSWORD);
+            try {
+                const res = await fetch('/mgtest/EncryptBankFile', { method: 'POST', body: formData });
+                if (res.ok) {
+                    const arr = await res.arrayBuffer();
+                    dataToWrite = new Uint8Array(arr);
+                } else {
+                    console.error("Şifreleme başarısız:", await res.text());
+                    alert("Dosya şifrelenemedi, düz metin (şifresiz) olarak kaydedilecek.");
+                }
+            } catch (e) { console.error("Şifreleme isteği başarısız", e); }
+        }
+        // SHIELD_ENCRYPTION_END
         const writable = await fileHandle.createWritable();
-        await writable.write(dbData);
+        await writable.write(dataToWrite);
         await writable.close();
+
+        // SHIELD_ENCRYPTION_START: Log client-side SAVE action to server
+        fetch('/mgtest/LogClientAction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'SAVE', dosyaId: fileHandle.name, bankaAdi: fileHandle.name, sifre: window.USER_DB_PASSWORD || "" })
+        }).catch(e => console.error("Client log hatası:", e));
+        // SHIELD_ENCRYPTION_END
 
         console.log("Değişiklikler şifresiz olarak dosyaya kaydedildi.");
     } catch (e) {
@@ -416,18 +563,30 @@ async function convertLegacyFile(event) {
         const plainBuffer = await response.arrayBuffer();
 
         // Kullanıcıya kaydetmesi için diyalog aç
-        const newFileHandle = await window.showSaveFilePicker({
-            suggestedName: file.name.replace(".mg", "_unencrypted.mg"),
-            types: [{
-                description: 'Şifresiz Yeni Nesil Veritabanı',
-                accept: { 'application/octet-stream': ['.mg'] },
-            }],
-        });
+        let newFileName = file.name.replace(".mg", "_unencrypted.mg");
+        if (window.showSaveFilePicker) {
+            const newFileHandle = await window.showSaveFilePicker({
+                suggestedName: newFileName,
+                types: [{
+                    description: 'Şifresiz Yeni Nesil Veritabanı',
+                    accept: { 'application/octet-stream': ['.mg'] },
+                }],
+            });
 
-        const writable = await newFileHandle.createWritable();
-        await writable.write(plainBuffer);
-        await writable.close();
-
+            const writable = await newFileHandle.createWritable();
+            await writable.write(plainBuffer);
+            await writable.close();
+        } else {
+            const blob = new Blob([plainBuffer], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = newFileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
         showAlert("Dönüştürme başarıyla tamamlandı! Şifresiz dosyanızı artık 'Mevcut Veritabanını Aç' diyerek okuyabilir veya DB Browser ile açabilirsiniz.", "success");
 
     } catch (e) {

@@ -118,6 +118,10 @@
 </head>
 <body>
 
+    <script>
+        window.USER_DB_PASSWORD = "@ViewData["Sifre"]";
+        window.USER_ROLE = "@Context.Session.GetString("KullaniciTuru")";
+    </script>
 
     <div class="main-panel">
         <div id="bankaAdi" class="mb-3"></div>
@@ -171,6 +175,12 @@
             <button class="btn btn-success btn-action" onclick="document.getElementById('fileInput').click()">
                 <i class="bi bi-upload"></i> Banka Aç
             </button>
+            @if (Context.Session.GetString("KullaniciTuru") == "admin")
+            {
+                <button class="btn btn-danger btn-action" onclick="openDatabaseAsAdmin()">
+                    <i class="bi bi-shield-lock"></i> Başkasının Bankasını Aç
+                </button>
+            }
             <input type="file" id="fileInput" accept=".mg" style="display:none" />
             
             <button class="btn btn-info btn-action" onclick="klasorSec()">
@@ -342,70 +352,7 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            try {
-                const reader = new FileReader();
-                reader.onload = async function() {
-                    try {
-                        const Uints = new Uint8Array(reader.result);
-                        const SQL = await window.initSqlJs({ locateFile: file => '/lib/sqljs/' + file });
-                        const db = new SQL.Database(Uints);
-
-                        let bankaName = file.name.replace('.mg', '');
-                        try {
-                            const resB = db.exec("SELECT BankaAdi FROM BankaAyarlari LIMIT 1");
-                            if (resB.length > 0 && resB[0].values.length > 0) {
-                                bankaName = resB[0].values[0][0];
-                            }
-                        } catch(e) { console.log('BankaAyarlari table missing'); }
-
-                        const resS = db.exec("SELECT * FROM Soru");
-                        const columns = resS[0].columns;
-                        const rows = resS[0].values;
-
-                        const loadedSorular = rows.map(row => {
-                            const s = {};
-                            columns.forEach((col, idx) => { s[col] = row[idx]; });
-                            
-                            return {
-                                id: s.Id || Math.floor(Math.random() * 1000000),
-                                soruResmi: s.SoruResmi || '',
-                                dersAdi: s.DersAdi || '',
-                                dersId: s.DersId || null,
-                                konuAdi: s.KonuAdi || '',
-                                konuId: s.KonuId || null,
-                                kazanimAdi: s.KazanimAdi || '',
-                                kazanimId: s.KazanimId || null,
-                                soruMetni: s.SoruMetni || '',
-                                soruMetniAyriMi: s.SoruMetniAyriMi === 1,
-                                sikkarAyriMi: s.SiklarAyriMi === 1,
-                                siklar: {
-                                    A: s.SikA || '',
-                                    B: s.SikB || '',
-                                    C: s.SikC || '',
-                                    D: s.SikD || '',
-                                    E: s.SikE || ''
-                                },
-                                dogruSik: s.DogruSik || 'A',
-                                olusturmaTarihi: s.OlusturmaTarihi || new Date().toISOString()
-                            };
-                        });
-
-                        localStorage.setItem('sorular', JSON.stringify(loadedSorular));
-                        localStorage.setItem('bankaAdi', bankaName);
-                        
-                        alert('Banka başarıyla yüklendi! Düzenleme sayfasına yönlendiriliyorsunuz...');
-                        window.location.href = '/mgtest/CreateBank';
-
-                    } catch (err) {
-                        console.error('SQL Error:', err);
-                        alert('Dosya açılamadı. Dosya bozuk olabilir veya formatı geçersiz.');
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Dosya okunurken hata oluştu: ' + error.message);
-            }
+            await processSelectedFile(file);
 
             e.target.value = '';
         });
@@ -874,6 +821,87 @@
             await workspaceDB.save('bankaAdi', bankaAdi);
             localStorage.setItem('bankaAdi', bankaAdi); // Arayüz için tutalım
             window.location.href = '/mgtest/CreateBank';
+        }
+
+        function openDatabaseAsAdmin() {
+            const password = prompt("Lütfen açmak istediğiniz veritabanının şifresini girin:");
+            if (!password) {
+                document.getElementById('noBank').innerHTML = "<span class='text-danger'>Şifre girilmedi, işlem iptal edildi.</span>";
+                return;
+            }
+            window.ADMIN_MANUAL_PASSWORD = password;
+            document.getElementById('fileInput').click();
+        }
+
+        async function processSelectedFile(file) {
+            try {
+                const passwordToUse = window.ADMIN_MANUAL_PASSWORD || window.USER_DB_PASSWORD;
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                if (passwordToUse) {
+                    formData.append('password', passwordToUse);
+                }
+
+                const response = await fetch('/mgtest/DecryptBankFile', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    document.getElementById('noBank').innerHTML = "<span class='text-danger'>" + (errorText || "Dosya şifresi çözülemedi. Lütfen girdiğiniz şifreyi kontrol edin.") + "</span>";
+                    window.ADMIN_MANUAL_PASSWORD = null;
+                    return;
+                }
+
+                window.USER_DB_PASSWORD = passwordToUse;
+                window.ADMIN_MANUAL_PASSWORD = null;
+
+                const fileData = await response.arrayBuffer();
+                const Uints = new Uint8Array(fileData);
+                const SQL = await window.initSqlJs({ locateFile: f => '/lib/sqljs/' + f });
+                const db = new SQL.Database(Uints);
+
+                let bankaName = file.name.replace('.mg', '');
+                try {
+                    const resB = db.exec("SELECT BankaAdi FROM BankaAyarlari LIMIT 1");
+                    if (resB.length > 0 && resB[0].values.length > 0) {
+                        bankaName = resB[0].values[0][0];
+                    }
+                } catch(e) { console.log('BankaAyarlari table missing'); }
+
+                const resS = db.exec("SELECT * FROM Soru");
+                const columns = resS[0].columns;
+                const rows = resS[0].values;
+
+                const loadedSorular = rows.map(row => {
+                    const s = {};
+                    columns.forEach((col, idx) => { s[col] = row[idx]; });
+                    return {
+                        id: s.Id || Math.floor(Math.random() * 1000000),
+                        soruResmi: s.SoruResmi || '',
+                        dersAdi: s.DersAdi || '',
+                        dersId: s.DersId || null,
+                        konuAdi: s.KonuAdi || '',
+                        konuId: s.KonuId || null,
+                        kazanimAdi: s.KazanimAdi || '',
+                        kazanimId: s.KazanimId || null,
+                        soruMetni: s.SoruMetni || '',
+                        soruMetniAyriMi: s.SoruMetniAyriMi === 1,
+                        sikkarAyriMi: s.SiklarAyriMi === 1,
+                        siklar: { A: s.SikA||'', B: s.SikB||'', C: s.SikC||'', D: s.SikD||'', E: s.SikE||'' },
+                        dogruSik: s.DogruSik || 'A',
+                        olusturmaTarihi: s.OlusturmaTarihi || new Date().toISOString()
+                    };
+                });
+
+                await bankaAc(loadedSorular, bankaName);
+
+            } catch (err) {
+                console.error('SQL Error:', err);
+                document.getElementById('noBank').innerHTML = "<span class='text-danger'>Dosya açılamadı. Hata: " + err.message + "</span>";
+            }
         }
     </script>
 </body>

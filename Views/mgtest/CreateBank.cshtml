@@ -1,7 +1,10 @@
-﻿@{
+@{
     ViewData["Title"] = "Yeni Soru Bankası Oluştur";
+    // SHIELD_ENCRYPTION_START
+    var sifre = ViewData["Sifre"] as string;
+    // SHIELD_ENCRYPTION_END
 }
-
+ 
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -75,6 +78,9 @@
                                     <button class="btn btn-success" id="soruEkleBtn">
                                         <i class="bi bi-plus-circle"></i> Soru Ekle
                                     </button>
+                                    <button class="btn btn-warning" id="pdfSeriSoruEkleBtn">
+                                        <i class="bi bi-file-pdf"></i> PDF'ten Seri Soru Ekle
+                                    </button>
                                     <button class="btn btn-primary" id="bankaKaydetBtn">
                                         <i class="bi bi-save"></i> Bankayı Kaydet ve İndir
                                     </button>
@@ -85,8 +91,7 @@
                 </div>
             </div>
         </div>
-        
-        
+
         <!-- TOPLU İŞLEMLER -->
         <div class="card shadow-sm mb-3">
             <div class="card-body">
@@ -96,7 +101,7 @@
                 <div class="row g-3">
                     <div class="col-md-6 border-end">
                         <p class="text-muted small mb-2"><strong>Soru Ekleme:</strong> Klasördeki tüm resimleri metinsiz soru olarak ekler.</p>
-                        <button class="btn btn-outline-primary btn-sm" onclick="topluKlasorSoruEkleModalAc()">
+                        <button class="btn btn-outline-primary btn-sm" onclick="document.getElementById('topluKlasorInput').click()">
                             <i class="bi bi-folder-plus"></i> Klasörden Toplu Soru Ekle
                         </button>
                         <input type="file" id="topluKlasorInput" webkitdirectory directory multiple style="display:none" 
@@ -166,23 +171,8 @@
                 </div>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <button class="btn btn-light" onclick="wordOlustur('tum', false)">
-                    <i class="bi bi-file-word"></i> Word (Tüm Sorular)
-                </button>
-                <button class="btn btn-light" onclick="wordOlustur('tum', true)">
-                    <i class="bi bi-file-word-fill"></i> Word (Anahtarlı)
-                </button>
-                <button class="btn btn-light" onclick="wordOlustur('secili', false)">
-                    <i class="bi bi-check2-square"></i> Word (Seçili)
-                </button>
-                <button class="btn btn-danger" onclick="pdfOlustur('tum', false)">
-                    <i class="bi bi-file-pdf"></i> PDF (Tüm Sorular)
-                </button>
-                <button class="btn btn-dark" onclick="pdfOlustur('tum', true)">
-                    <i class="bi bi-file-pdf-fill"></i> PDF (Anahtarlı)
-                </button>
-                <button class="btn btn-danger" onclick="pdfOlustur('secili', false)">
-                    <i class="bi bi-check2-square"></i> PDF (Seçili)
+                <button class="btn btn-primary" onclick="exportModalAc()">
+                    <i class="bi bi-file-earmark-arrow-down-fill"></i> Sınav Kağıdı Hazırla (PDF / Word)
                 </button>
                 <button class="btn btn-warning" onclick="secilenlerdenYeniBanka()">
                     <i class="bi bi-plus-square-fill"></i> Seçililerden Yeni Banka
@@ -236,6 +226,35 @@
         </div>
         
         <!-- SORU LİSTESİ -->
+                <!-- GÖRÜNÜM VE DÜZEN AYARLARI -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <!-- Sütun Görünüm Seçenekleri -->
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small fw-bold text-muted"><i class="bi bi-grid-3x3-gap"></i> Görünüm Sütunları:</span>
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Görünüm Seçenekleri">
+                            <button type="button" class="btn btn-outline-primary" id="gridBtn_12" onclick="setCardLayout('col-12 mb-3', 12)"><i class="bi bi-view-stacked"></i> 1 Sütun (Büyük)</button>
+                            <button type="button" class="btn btn-outline-primary active" id="gridBtn_6" onclick="setCardLayout('col-12 col-xl-6 mb-3', 6)"><i class="bi bi-grid-fill"></i> 2 Sütun (Orta)</button>
+                            <button type="button" class="btn btn-outline-primary" id="gridBtn_4" onclick="setCardLayout('col-12 col-md-6 col-lg-4 mb-3', 4)"><i class="bi bi-grid-3x3-gap-fill"></i> 3 Sütun (Kompakt)</button>
+                            <button type="button" class="btn btn-outline-primary" id="gridBtn_3" onclick="setCardLayout('col-12 col-sm-6 col-md-4 col-lg-3 mb-3', 3)"><i class="bi bi-grid-3x3"></i> 4 Sütun (Mini)</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Daralt / Genişlet Seçenekleri -->
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small fw-bold text-muted"><i class="bi bi-arrows-angle-contract"></i> Kartları Sığdır:</span>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="toggleAllCards(true)">
+                            <i class="bi bi-chevron-bar-contract"></i> Tümünü Daralt
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="toggleAllCards(false)">
+                            <i class="bi bi-chevron-bar-expand"></i> Tümünü Genişlet
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="soruListesi" class="mb-5">
             <div class="alert alert-info text-center">
                 <i class="bi bi-info-circle fs-1"></i>
@@ -253,9 +272,9 @@
     <!-- ============================================
          SORU EKLE MODAL
          ============================================ -->
-    <div class="modal fade" id="soruEkleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="soruEkleModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-fullscreen">
-            <div class="modal-content">
+            <div class="modal-content" style="pointer-events: auto !important; position: relative; z-index: 1056;">
                 <div class="modal-header bg-primary text-white d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center gap-3">
                         <h5 class="modal-title mb-0">
@@ -283,19 +302,51 @@
                     <div class="row">
                         
                         <!-- SOL TARAF - Resim -->
-                        <div class="col-md-5">
-                            <div class="card h-100">
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0">
+                        <div class="col-xl-5 col-lg-5 mb-3 mb-lg-0 d-flex flex-column">
+                            <div class="card h-100 shadow-sm border-0 d-flex flex-column">
+                                <div class="card-header bg-white border-bottom-0 py-2 px-3">
+                                    <h6 class="mb-0 text-primary fw-bold">
                                         <i class="bi bi-image"></i> Soru Resmi
                                     </h6>
                                 </div>
-                                <div class="card-body text-center">
-                                    <button class="btn btn-secondary mb-3" id="soruResmiSecBtn">
-                                        <i class="bi bi-upload"></i> Resim Seç ve Kırp
-                                    </button>
+                                <div class="card-body d-flex flex-column p-2 pt-0 flex-grow-1">
+                                    <div class="d-flex gap-2 justify-content-center flex-wrap align-items-center mb-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary shadow-sm py-1 px-2" id="soruResmiSecBtn">
+                                            <i class="bi bi-upload"></i> Resim Seç ve Kırp
+                                        </button>
+
+                                        <button type="button" class="btn btn-sm btn-outline-success shadow-sm py-1 px-2" id="panodanYapistirBtn" title="Panodaki resmi yapıştır (Kısayol: Ctrl + V)">
+                                            <i class="bi bi-clipboard-plus"></i> Panodan Yapıştır <kbd class="bg-light text-success border border-success ms-1 small" style="font-size: 0.7rem; padding: 1px 4px;">Ctrl+V</kbd>
+                                        </button>
+                                        
+                                        <div class="input-group input-group-sm shadow-sm" style="width: auto; border-radius: 6px;">
+                                            <span class="input-group-text bg-light border-primary text-primary px-2 py-1" title="Görüntü Kalitesi">
+                                                <i class="bi bi-display"></i>
+                                            </span>
+                                            <select class="form-select form-select-sm border-primary text-primary fw-bold py-1" id="pdfQualitySelectMain" style="min-width: 115px; cursor: pointer;">
+                                                <option value="1.0">Düşük Kalite</option>
+                                                <option value="1.5">Standart</option>
+                                                <option value="2.5" selected>Yüksek (Önerilen)</option>
+                                                <option value="4.0">Maksimum</option>
+                                            </select>
+                                            <button type="button" class="btn btn-sm btn-primary py-1 px-2" id="pdfResmiSecBtn">
+                                                <i class="bi bi-file-pdf"></i> PDF'den Seç
+                                            </button>
+                                        </div>
+                                    </div>
                                     <input type="file" id="soruResmiInput" accept="image/*" style="display:none" />
-                                                                        <div id="zoomKontrolleriModal" class="d-flex justify-content-center gap-2 mt-2" style="display:none !important;">
+                                    <input type="file" id="pdfResmiInput" accept="application/pdf" style="display:none" />
+                                    
+                                    <!-- Soru Resmi Önizleme (Büyütülmüş Alan) -->
+                                    <div id="soruResmiPreview" class="flex-grow-1 my-1" style="overflow: auto; flex: 1 1 auto; height: 100%; min-height: 480px; max-height: calc(100vh - 210px); border: 2px dashed #cbd5e1; border-radius: 8px; padding: 10px; background: #f8fafc; display: flex; align-items: center; justify-content: center; position: relative;">
+                                        <span class="text-muted text-center p-4">
+                                            <i class="bi bi-card-image fs-1 opacity-50 d-block mb-1"></i>
+                                            <small class="text-secondary">Resim seçin veya panodan yapıştırın (<kbd class="bg-light text-dark border">Ctrl+V</kbd>)</small>
+                                        </span>
+                                    </div>
+
+                                    <!-- Zoom Butonları (Soru Resminin Altında) -->
+                                    <div id="zoomKontrolleriModal" class="d-flex justify-content-center gap-2 pt-2 border-top mt-auto" style="display:none !important;">
                                         <button type="button" class="btn btn-sm btn-outline-secondary" onclick="zoomModal(0.1)" title="Yakınlaştır">
                                             <i class="bi bi-zoom-in"></i>
                                         </button>
@@ -306,148 +357,283 @@
                                             <i class="bi bi-aspect-ratio"></i> Sıfırla
                                         </button>
                                     </div>
-                                    <div id="soruResmiPreview" class="mt-3" style="overflow: auto; max-height: 500px; border: 1px dashed #ccc; padding: 10px; background: #f9f9f9;"></div>
-
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- SAĞ TARAF - Form -->
-                        <div class="col-md-7">
-                            <div class="card h-100">
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0">
-                                        <i class="bi bi-pencil"></i> Soru Bilgileri
+                        <!-- ORTA TARAF - Soru Metni ve Şıklar -->
+                        <div class="col-xl-4 col-lg-4 col-md-6 mb-3 mb-lg-0">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-header bg-white border-bottom-0 py-2 px-3">
+                                    <h6 class="mb-0 text-primary fw-bold">
+                                        <i class="bi bi-ui-radios-grid"></i> Soru Metni ve Şıklar
                                     </h6>
                                 </div>
-                                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                                <div class="card-body p-3 pt-2" style="overflow-y: auto; max-height: calc(100vh - 170px);">
                                     
-                                    <!-- Ders/Konu/Kazanım -->
-                                    <div class="row mb-3">
-                                        <div class="col-md-4">
-                                            <label class="form-label">Ders</label>
-                                            <select class="form-select" id="dersSelect">
-                                                <option value="">Ders Seçin</option>
-                                            </select>
-                                            <small class="text-muted">Opsiyonel</small>
+                                    <!-- MATEMATİK & SEMBOL ARAÇ ÇUBUĞU (TOOLBAR) -->
+                                    <div class="math-toolbar border rounded p-2 mb-3 bg-light shadow-sm">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="small fw-bold text-primary d-flex align-items-center gap-1" style="font-size: 0.82rem;">
+                                                <i class="bi bi-calculator"></i> Matematik & Sembol Çubuğu
+                                            </span>
+                                            <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none text-secondary" id="toggleMathDrawerBtn" onclick="window.toggleMathDrawer()" style="font-size: 0.78rem;">
+                                                <span id="toggleMathDrawerText">Tüm Semboller</span> <i class="bi bi-chevron-down" id="toggleMathDrawerIcon"></i>
+                                            </button>
                                         </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label">Konu</label>
-                                            <select class="form-select" id="konuSelect">
-                                                <option value="">Önce ders seçin</option>
-                                            </select>
-                                            <small class="text-muted">Opsiyonel</small>
+
+                                        <!-- Hızlı Erişim Butonları (Her Zaman Görünür) -->
+                                        <div class="d-flex flex-wrap gap-1 align-items-center">
+                                            <!-- Hızlı Üst İndisler -->
+                                            <div class="btn-group btn-group-sm" role="group" title="Üst İndisler">
+                                                <button type="button" class="btn btn-outline-primary math-btn py-0 px-2 fw-bold" onmousedown="event.preventDefault()" onclick="window.sembolEkle('²')" title="Kare (x²)">x²</button>
+                                                <button type="button" class="btn btn-outline-primary math-btn py-0 px-2 fw-bold" onmousedown="event.preventDefault()" onclick="window.sembolEkle('³')" title="Küp (x³)">x³</button>
+                                                <button type="button" class="btn btn-outline-primary math-btn py-0 px-2" onmousedown="event.preventDefault()" onclick="window.secileniUstIndisYap()" title="Seçileni Üst İndise Çevir (veya ²)"><i class="bi bi-arrow-up-short"></i>xʸ</button>
+                                            </div>
+
+                                            <!-- Hızlı Alt İndisler -->
+                                            <div class="btn-group btn-group-sm" role="group" title="Alt İndisler">
+                                                <button type="button" class="btn btn-outline-secondary math-btn py-0 px-2 fw-bold" onmousedown="event.preventDefault()" onclick="window.sembolEkle('₁')" title="Alt 1 (x₁)">x₁</button>
+                                                <button type="button" class="btn btn-outline-secondary math-btn py-0 px-2 fw-bold" onmousedown="event.preventDefault()" onclick="window.sembolEkle('₂')" title="Alt 2 (x₂)">x₂</button>
+                                                <button type="button" class="btn btn-outline-secondary math-btn py-0 px-2" onmousedown="event.preventDefault()" onclick="window.secileniAltIndisYap()" title="Seçileni Alt İndise Çevir (veya ₁)"><i class="bi bi-arrow-down-short"></i>xᵧ</button>
+                                            </div>
+
+                                            <!-- Temel Matematik & Fen Sembolleri -->
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button type="button" class="btn btn-outline-dark math-btn py-0 px-2 fw-bold" onmousedown="event.preventDefault()" onclick="window.sembolEkle('√')" title="Karekök (√)">√</button>
+                                                <button type="button" class="btn btn-outline-dark math-btn py-0 px-2 fw-bold" onmousedown="event.preventDefault()" onclick="window.sembolEkle('π')" title="Pi Sayısı (π)">π</button>
+                                                <button type="button" class="btn btn-outline-dark math-btn py-0 px-2 fw-bold" onmousedown="event.preventDefault()" onclick="window.sembolEkle('°')" title="Derece (°)">°</button>
+                                                <button type="button" class="btn btn-outline-dark math-btn py-0 px-2 fw-bold" onmousedown="event.preventDefault()" onclick="window.sembolEkle('±')" title="Artı/Eksi (±)">±</button>
+                                                <button type="button" class="btn btn-outline-dark math-btn py-0 px-2 fw-bold" onmousedown="event.preventDefault()" onclick="window.sembolEkle('≤')" title="Küçük Eşit (≤)">≤</button>
+                                                <button type="button" class="btn btn-outline-dark math-btn py-0 px-2 fw-bold" onmousedown="event.preventDefault()" onclick="window.sembolEkle('≥')" title="Büyük Eşit (≥)">≥</button>
+                                                <button type="button" class="btn btn-outline-dark math-btn py-0 px-2 fw-bold" onmousedown="event.preventDefault()" onclick="window.sembolEkle('≠')" title="Eşit Değil (≠)">≠</button>
+                                            </div>
                                         </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label">Kazanım</label>
-                                            <select class="form-select" id="kazanimSelect">
-                                                <option value="">Önce konu seçin</option>
-                                            </select>
-                                            <small class="text-muted">Opsiyonel</small>
+
+                                        <!-- Genişletilebilir Tüm Semboller Bölümü (Drawer) -->
+                                        <div id="mathSymbolsDrawer" class="d-none mt-2 pt-2 border-top">
+                                            <!-- Sekmeler -->
+                                            <ul class="nav nav-pills nav-fill mb-2" id="mathTabs" role="tablist" style="font-size: 0.73rem;">
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link active py-1 px-1" id="tab-ust-tab" data-bs-toggle="pill" data-bs-target="#tab-ust" type="button" role="tab">Üst İndis</button>
+                                                </li>
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link py-1 px-1" id="tab-alt-tab" data-bs-toggle="pill" data-bs-target="#tab-alt" type="button" role="tab">Alt İndis</button>
+                                                </li>
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link py-1 px-1" id="tab-islem-tab" data-bs-toggle="pill" data-bs-target="#tab-islem" type="button" role="tab">İşlem/Kesir</button>
+                                                </li>
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link py-1 px-1" id="tab-yunan-tab" data-bs-toggle="pill" data-bs-target="#tab-yunan" type="button" role="tab">Geometri/Fizik</button>
+                                                </li>
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link py-1 px-1" id="tab-mantik-tab" data-bs-toggle="pill" data-bs-target="#tab-mantik" type="button" role="tab">Küme/Mantık</button>
+                                                </li>
+                                            </ul>
+
+                                            <div class="tab-content bg-white p-2 rounded border" id="mathTabsContent" style="max-height: 125px; overflow-y: auto;">
+                                                <!-- Üst İndisler -->
+                                                <div class="tab-pane fade show active" id="tab-ust" role="tabpanel">
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        @foreach(var sym in new[] {"⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹", "⁺", "⁻", "ⁿ", "ˣ", "ʸ", "ᵃ", "ᵇ", "⁽", "⁾"})
+                                                        {
+                                                            <button type="button" class="btn btn-sm btn-outline-primary math-grid-btn p-1 px-2" onmousedown="event.preventDefault()" onclick="window.sembolEkle('@sym')">@sym</button>
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                <!-- Alt İndisler -->
+                                                <div class="tab-pane fade" id="tab-alt" role="tabpanel">
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        @foreach(var sym in new[] {"₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉", "₊", "₋", "ₐ", "ₑ", "ₒ", "ₓ", "ₕ", "ₖ", "ₘ", "ₙ", "₍", "₎"})
+                                                        {
+                                                            <button type="button" class="btn btn-sm btn-outline-secondary math-grid-btn p-1 px-2" onmousedown="event.preventDefault()" onclick="window.sembolEkle('@sym')">@sym</button>
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                <!-- İşlem & Kesir -->
+                                                <div class="tab-pane fade" id="tab-islem" role="tabpanel">
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        @foreach(var sym in new[] {"√", "∛", "∜", "±", "×", "÷", "·", "≤", "≥", "≠", "≈", "≡", "∞", "½", "⅓", "¼", "¾", "⅕", "⅙", "⅛", "‰", "∑", "∏", "∫"})
+                                                        {
+                                                            <button type="button" class="btn btn-sm btn-outline-dark math-grid-btn p-1 px-2" onmousedown="event.preventDefault()" onclick="window.sembolEkle('@sym')">@sym</button>
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                <!-- Geometri / Fizik / Yunan -->
+                                                <div class="tab-pane fade" id="tab-yunan" role="tabpanel">
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        @foreach(var sym in new[] {"°", "π", "α", "β", "γ", "θ", "λ", "μ", "Δ", "Ω", "ρ", "σ", "φ", "ω", "∠", "⊥", "∥", "△", "∼", "≅"})
+                                                        {
+                                                            <button type="button" class="btn btn-sm btn-outline-success math-grid-btn p-1 px-2" onmousedown="event.preventDefault()" onclick="window.sembolEkle('@sym')">@sym</button>
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                <!-- Küme & Mantık & Ok -->
+                                                <div class="tab-pane fade" id="tab-mantik" role="tabpanel">
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        @foreach(var sym in new[] {"∈", "∉", "⊂", "⊃", "⊆", "⊇", "∪", "∩", "∅", "∀", "∃", "∧", "∨", "¬", "→", "↔", "⇒", "⇔"})
+                                                        {
+                                                            <button type="button" class="btn btn-sm btn-outline-info math-grid-btn p-1 px-2" onmousedown="event.preventDefault()" onclick="window.sembolEkle('@sym')">@sym</button>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mt-2 text-muted" style="font-size: 0.72rem;">
+                                                <i class="bi bi-lightbulb text-warning me-1"></i>
+                                                <strong>Akıllı Kısayollar:</strong> Yazarken <code>^2</code> yazarsanız <code>²</code>, <code>_1</code> yazarsanız <code>₁</code>, <code>+-</code> yazarsanız <code>±</code>, <code>&lt;=</code> yazarsanız <code>≤</code>, <code>&gt;=</code> yazarsanız <code>≥</code> otomatik oluşur.
+                                            </div>
                                         </div>
                                     </div>
-                                    
-                                    <!-- Soru Metni -->
+
+                                    <!-- Soru Metni (Şıkların Üzerinde) -->
                                     <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <label class="form-label mb-0">Soru Metni</label>
-                                            <div class="form-check form-switch">
-                                                <input class="form-check-input" type="checkbox" id="soruMetniAyriMi" checked>
-                                                <label class="form-check-label" for="soruMetniAyriMi">
-                                                    <small>Metin ayrı mı?</small>
+                                        <div class="d-flex justify-content-between align-items-center mb-2 bg-light p-2 rounded">
+                                            <label class="form-label fw-bold mb-0 text-primary small">
+                                                <i class="bi bi-card-text me-1"></i> Soru Metni
+                                            </label>
+                                            <div class="form-check form-switch m-0">
+                                                <input class="form-check-input" type="checkbox" id="soruMetniAyriMi">
+                                                <label class="form-check-label text-muted small" for="soruMetniAyriMi">
+                                                    Metin ayrı mı?
                                                 </label>
                                             </div>
                                         </div>
                                         <textarea class="form-control" id="soruMetniInput" rows="4" 
-                                                  placeholder="Soru metnini buraya yazın (veya resim içinde olacaksa boş bırakın)"></textarea>
-                                        <small class="text-muted">
-                                            <i class="bi bi-info-circle"></i> 
-                                            Eğer soru metni resim içindeyse, yukarıdaki anahtarı kapatın ve bu alanı boş bırakın
-                                        </small>
+                                                  placeholder="Soru metnini buraya yazın..."></textarea>
+                                        <div class="form-text small mt-1">
+                                            <i class="bi bi-info-circle text-primary"></i> 
+                                            Soru metni resim içindeyse anahtarı kapatıp boş bırakın.
+                                        </div>
                                     </div>
-                                    
-                                    <!-- Şıklar -->
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <label class="form-label mb-0 fw-bold">Şıklar ve Doğru Cevap</label>
-                                            <div class="form-check form-switch">
-                                                <input class="form-check-input" type="checkbox" id="sikkarAyriMi" checked>
-                                                <label class="form-check-label" for="sikkarAyriMi">
-                                                    <small>Şıklar ayrı mı?</small>
-                                                </label>
+
+                                    <!-- Şıklar ve Doğru Cevap -->
+                                    <div class="border-top pt-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2 bg-light p-2 rounded">
+                                            <label class="form-label mb-0 fw-bold small text-primary">
+                                                <i class="bi bi-ui-radios me-1"></i> Şıklar Ayrı mı?
+                                            </label>
+                                            <div class="form-check form-switch m-0">
+                                                <input class="form-check-input" type="checkbox" id="sikkarAyriMi">
                                             </div>
                                         </div>
-                                        <div class="alert alert-info py-2">
-                                            <small>
-                                                <i class="bi bi-info-circle"></i> 
-                                                Doğru cevabı seçmek için şık başındaki radyo butonuna tıklayın.
-                                                Eğer şıklar resim içindeyse, yukarıdaki anahtarı kapatın.
-                                            </small>
-                                        </div>
                                         
-                                        <div id="siklar-container" class="row g-2">
+                                        <p class="text-muted small mb-2 d-flex justify-content-between align-items-center flex-wrap gap-1">
+                                            <span><i class="bi bi-check2-circle text-success"></i> Doğru cevabı işaretleyin:</span>
+                                            <span class="badge bg-light text-dark border"><kbd class="bg-white text-dark border">Alt</kbd> + <kbd class="bg-white text-dark border">A</kbd>/<kbd class="bg-white text-dark border">B</kbd>/<kbd class="bg-white text-dark border">C</kbd>/<kbd class="bg-white text-dark border">D</kbd>/<kbd class="bg-white text-dark border">E</kbd></span>
+                                        </p>
+                                        
+                                        <div id="siklar-container" class="d-flex flex-column gap-2">
                                             @foreach(var harf in new[] {"A", "B", "C", "D", "E"})
                                             {
-                                                <div class="col-12">
-                                                    <div class="input-group">
-                                                        <span class="input-group-text bg-light">
-                                                            <input type="radio" 
-                                                                   name="dogruSik" 
-                                                                   id="dogruSik_@harf" 
-                                                                   value="@harf" 
-                                                                   @(harf == "A" ? "checked" : "")
-                                                                   class="form-check-input mt-0">
-                                                        </span>
-                                                        <span class="input-group-text fw-bold">@harf)</span>
-                                                        <input type="text" 
-                                                               class="form-control sikk-input" 
-                                                               id="@harf" 
-                                                               placeholder="@harf şıkkı (resimde ise boş bırakın)">
-                                                    </div>
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text bg-white p-0">
+                                                        <input type="radio" 
+                                                               name="dogruSik" 
+                                                               id="dogruSik_@harf" 
+                                                               value="@harf" 
+                                                               @(harf == "A" ? "checked" : "")
+                                                               class="btn-check">
+                                                        <label class="btn btn-outline-success border-0 px-3 py-1 m-0 fw-bold" for="dogruSik_@harf" title="Doğru Cevap @harf (Kısayol: Alt + @harf)">@harf</label>
+                                                    </span>
+                                                    <input type="text" 
+                                                           class="form-control sikk-input border-start-0 bg-light" 
+                                                           id="@harf" 
+                                                           placeholder="@harf şıkkı (İsteğe bağlı)">
                                                 </div>
                                             }
                                         </div>
                                     </div>
                                     
-                                    <script>
-                                    // Şıklar ayrı mı anahtarını dinle
-                                    document.getElementById('sikkarAyriMi')?.addEventListener('change', function() {
-                                        const inputs = document.querySelectorAll('.sikk-input');
-                                        inputs.forEach(input => {
-                                            input.disabled = !this.checked;
-                                            if (!this.checked) {
-                                                input.placeholder = 'Şıklar resim içinde';
-                                            } else {
-                                                const harf = input.id;
-                                                input.placeholder = `${harf} şıkkı`;
-                                            }
-                                        });
-                                    });
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SAĞ TARAF - Kategori (Ders, Konu, Kazanım) -->
+                        <div class="col-xl-3 col-lg-3 col-md-6">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-header bg-white border-bottom-0 py-2 px-3">
+                                    <h6 class="mb-0 text-primary fw-bold">
+                                        <i class="bi bi-tags"></i> Kategori Bilgileri
+                                    </h6>
+                                </div>
+                                <div class="card-body p-3 pt-2" style="overflow-y: auto; max-height: calc(100vh - 170px);">
                                     
-                                    // Soru metni ayrı mı anahtarını dinle
-                                    document.getElementById('soruMetniAyriMi')?.addEventListener('change', function() {
-                                        const textarea = document.getElementById('soruMetniInput');
-                                        textarea.disabled = !this.checked;
-                                        if (!this.checked) {
-                                            textarea.placeholder = 'Soru metni resim içinde';
-                                        } else {
-                                            textarea.placeholder = 'Soru metnini buraya yazın...';
-                                        }
-                                    });
-                                    </script>
+                                    <div class="bg-light p-3 rounded mb-3">
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-muted mb-1 d-flex align-items-center">
+                                                <i class="bi bi-book text-primary me-1"></i> Ders
+                                            </label>
+                                            <select class="form-select form-select-sm" id="dersSelect">
+                                                <option value="">Ders Seçin (Opsiyonel)</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-muted mb-1 d-flex align-items-center">
+                                                <i class="bi bi-bookmark text-info me-1"></i> Konu
+                                            </label>
+                                            <select class="form-select form-select-sm" id="konuSelect">
+                                                <option value="">Önce ders seçin</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-1">
+                                            <label class="form-label small fw-bold text-muted mb-1 d-flex align-items-center">
+                                                <i class="bi bi-check2-square text-success me-1"></i> Kazanım
+                                            </label>
+                                            <select class="form-select form-select-sm" id="kazanimSelect">
+                                                <option value="">Önce konu seçin</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-light border small text-muted p-2">
+                                        <i class="bi bi-info-circle text-info me-1"></i> 
+                                        Ders, konu ve kazanım seçimi opsiyoneldir. Soru bankasını gruplamak ve filtrelemek için kullanılır.
+                                    </div>
                                     
                                 </div>
                             </div>
                         </div>
                         
                     </div>
+                    
+                    <script>
+                    // Şıklar ayrı mı anahtarını dinle
+                    document.getElementById('sikkarAyriMi')?.addEventListener('change', function() {
+                        const inputs = document.querySelectorAll('.sikk-input');
+                        inputs.forEach(input => {
+                            input.disabled = !this.checked;
+                            if (!this.checked) {
+                                input.placeholder = 'Şıklar resim içinde';
+                            } else {
+                                const harf = input.id;
+                                input.placeholder = `${harf} şıkkı`;
+                            }
+                        });
+                    });
+                    
+                    // Soru metni ayrı mı anahtarını dinle
+                    document.getElementById('soruMetniAyriMi')?.addEventListener('change', function() {
+                        const textarea = document.getElementById('soruMetniInput');
+                        textarea.disabled = !this.checked;
+                        if (!this.checked) {
+                            textarea.placeholder = 'Soru metni resim içinde';
+                        } else {
+                            textarea.placeholder = 'Soru metnini buraya yazın...';
+                        }
+                    });
+                    </script>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="bi bi-x-circle"></i> İptal
+                <div class="modal-footer" style="pointer-events: auto !important; position: relative; z-index: 1057;">
+                    <button type="button" class="btn btn-success" id="soruKaydetBtn" onclick="window.soruKaydet(event)" title="Kaydet (Kısayol: Ctrl + K)" style="pointer-events: auto !important; position: relative; z-index: 1058;"> 
+                        <i class="bi bi-check-circle"></i> Kaydet <kbd class="bg-white text-success border ms-1 small" style="font-size: 0.72rem; padding: 2px 5px;">Ctrl+K</kbd>
                     </button>
-                    <button type="button" class="btn btn-success" id="soruKaydetBtn">
-                        <i class="bi bi-check-circle"></i> Kaydet
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="console.log('[HTML CLICK] İptal butonuna tıklandı!')" style="pointer-events: auto !important; position: relative; z-index: 1058;">
+                        <i class="bi bi-x-circle"></i> İptal
                     </button>
                 </div>
             </div>
@@ -459,7 +645,7 @@
          ============================================ -->
     <div class="modal fade" id="cropperModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl">
-            <div class="modal-content">
+            <div class="modal-content" style="pointer-events: auto !important; position: relative; z-index: 1056;">
                 <div class="modal-header">
                     <h5 class="modal-title">
                         <i class="bi bi-crop"></i> Resmi Kırp ve Ayarla
@@ -475,13 +661,132 @@
                         </small>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer" style="pointer-events: auto !important; position: relative; z-index: 1057;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle"></i> İptal
                     </button>
                     <button type="button" class="btn btn-primary" id="cropperOnaylaBtn">
                         <i class="bi bi-check-circle"></i> Onayla
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ============================================
+         PDF SEÇİM MODALİ
+         ============================================ -->
+    <div class="modal fade" id="pdfSecModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-xl" style="z-index: 1061;">
+            <div class="modal-content" style="pointer-events: auto !important; position: relative; z-index: 1056;">
+                <div class="modal-header bg-primary text-white d-flex align-items-center justify-content-between">
+                    <h5 class="modal-title mb-0">
+                        <i class="bi bi-file-pdf"></i> PDF'den Sayfa Seç ve Kırp
+                    </h5>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="d-flex align-items-center gap-1 bg-white rounded p-1 shadow-sm">
+                            <span class="small fw-bold text-primary ms-1"><i class="bi bi-display"></i> Görüntü Kalitesi:</span>
+                            <select class="form-select form-select-sm border-0 text-primary fw-bold" id="pdfQualitySelect" style="width: auto; background-color: transparent;">
+                                <option value="1.0">Düşük (Hızlı)</option>
+                                <option value="1.5">Standart</option>
+                                <option value="2.5" selected>Yüksek (Önerilen)</option>
+                                <option value="4.0">Maksimum (Yavaş)</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                    </div>
+                </div>
+                
+                <!-- Seri Soru Ekleme için Ders/Konu/Kazanım Seçimi -->
+                <div class="bg-light p-2 border-bottom d-flex align-items-center gap-2 justify-content-center flex-wrap" id="pdfKategoriBar" style="display:none !important;">
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="small fw-bold">Ders:</span>
+                        <select class="form-select form-select-sm" id="pdfDersSelect" style="min-width: 150px; width: auto;">
+                            <option value="">Ders Seçin</option>
+                        </select>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="small fw-bold">Konu:</span>
+                        <select class="form-select form-select-sm" id="pdfKonuSelect" style="min-width: 150px; width: auto;">
+                            <option value="">Önce ders seçin</option>
+                        </select>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="small fw-bold">Kazanım:</span>
+                        <select class="form-select form-select-sm" id="pdfKazanimSelect" style="min-width: 180px; width: auto;">
+                            <option value="">Önce konu seçin</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-body text-center d-flex flex-column align-items-center" style="max-height: 65vh; overflow: hidden; background-color: #e9ecef; padding: 10px;">
+                    <div id="pdfCropperContainer" style="box-shadow: 0 4px 15px rgba(0,0,0,0.15); background: white; padding: 10px; border-radius: 4px; width: 100%; height: 100%; max-height: 60vh; overflow: auto; position: relative;">
+                        <div id="pdfCropperWrapper" style="position: relative; width: 100%; height: auto; margin: 0 auto;">
+                            <img id="pdfCropperImage" style="display: block; width: 100%; height: 100%;">
+                        </div>
+                    </div>
+                    <canvas id="pdfHiddenCanvas" style="display:none;"></canvas>
+                </div>
+                <div class="modal-footer d-flex justify-content-between flex-wrap gap-2 py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="pdfPrevPageBtn">
+                            <i class="bi bi-chevron-left"></i> Önceki
+                        </button>
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="small">Sayfa</span>
+                            <input type="number" id="pdfPageInput" class="form-control form-control-sm text-center" style="width: 55px;" min="1" value="1">
+                            <span id="pdfTotalPages" class="small me-1">/ 0</span>
+                            <button type="button" class="btn btn-sm btn-primary py-0 px-2" id="pdfGoToPageBtn">Git</button>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="pdfNextPageBtn">
+                            <i class="bi bi-chevron-right"></i> Sonraki
+                        </button>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="pdfZoomOutBtn" title="Uzaklaştır">
+                            <i class="bi bi-zoom-out"></i>
+                        </button>
+                        <span id="pdfZoomInfo" class="small fw-bold text-muted" style="min-width: 40px;">150%</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="pdfZoomInBtn" title="Yakınlaştır">
+                            <i class="bi bi-zoom-in"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <!-- Seri Soru Ekleme için Doğru Cevap Seçimi (Radyo Butonlar) -->
+                        <div class="d-flex align-items-center gap-2 me-2" id="pdfDogruCevapContainer" style="display:none;">
+                            <span class="small fw-bold">Cevap:</span>
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Doğru Cevap">
+                                <input type="radio" class="btn-check" name="pdfDogruSik" id="pdfDogruA" value="A" checked>
+                                <label class="btn btn-sm btn-outline-success px-2 py-1" for="pdfDogruA">A</label>
+
+                                <input type="radio" class="btn-check" name="pdfDogruSik" id="pdfDogruB" value="B">
+                                <label class="btn btn-sm btn-outline-success px-2 py-1" for="pdfDogruB">B</label>
+
+                                <input type="radio" class="btn-check" name="pdfDogruSik" id="pdfDogruC" value="C">
+                                <label class="btn btn-sm btn-outline-success px-2 py-1" for="pdfDogruC">C</label>
+
+                                <input type="radio" class="btn-check" name="pdfDogruSik" id="pdfDogruD" value="D">
+                                <label class="btn btn-sm btn-outline-success px-2 py-1" for="pdfDogruD">D</label>
+
+                                <input type="radio" class="btn-check" name="pdfDogruSik" id="pdfDogruE" value="E">
+                                <label class="btn btn-sm btn-outline-success px-2 py-1" for="pdfDogruE">E</label>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle"></i> Kapat
+                        </button>
+                        
+                        <!-- Tekli Mod Butonu -->
+                        <button type="button" class="btn btn-sm btn-success" id="pdfOnaylaBtn">
+                            <i class="bi bi-crop"></i> Seçilen Alanı Kırp
+                        </button>
+                        
+                        <!-- Seri Mod Butonu -->
+                        <button type="button" class="btn btn-sm btn-warning" id="pdfSeriEkleBtn" style="display:none;">
+                            <i class="bi bi-plus-circle"></i> Soru Ekle
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -537,9 +842,7 @@
                                 </div>
                                 <div class="card-footer">
                                     <div class="input-group input-group-sm mb-2">
-                                        <input type="text" id="konuAdiInput" class="form-control" placeholder="Konu adı">
-                                        <button class="btn btn-success" id="konuEkleOnayBtn"><i class="bi bi-plus-lg"></i></button>
-                                    </div>
+                    
                                     <button class="btn btn-danger btn-sm w-100" id="konuSilBtn"><i class="bi bi-trash"></i> Seçili Konuyu Sil</button>
                                 </div>
                             </div>
@@ -574,6 +877,130 @@
         </div>
     </div>
     
+    <!-- EXPORT SETTINGS MODAL -->
+    <div class="modal fade" id="exportSettingsModal" tabindex="-1" aria-labelledby="exportSettingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <h5 class="modal-title" id="exportSettingsModalLabel">
+                        <i class="bi bi-file-earmark-pdf-fill"></i> Sınav / Yaprak Test Hazırla
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="exportForm">
+                        <!-- Format Selection -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><i class="bi bi-filetype-pdf"></i> Çıktı Formatı</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="exportFormat" id="formatPdf" value="pdf" checked>
+                                    <label class="form-check-label" for="formatPdf">PDF (Önizleme & Yazdır)</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="exportFormat" id="formatWord" value="word">
+                                    <label class="form-check-label" for="formatWord">Word Belgesi (.docx)</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Question Source -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><i class="bi bi-question-circle"></i> Soru Kaynağı</label>
+                            <select class="form-select" id="exportSource">
+                                <option value="tum">Tüm Sorular (Listelenen her şey)</option>
+                                <option value="secili">Sadece Seçilen Sorular</option>
+                            </select>
+                        </div>
+
+                        <!-- Column Count -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><i class="bi bi-columns-gap"></i> Sütun Sayısı</label>
+                            <select class="form-select" id="exportColumns">
+                                <option value="1">1 Sütunlu (Alt alta)</option>
+                                <option value="2" selected>2 Sütunlu (Yaprak Test)</option>
+                                <option value="3">3 Sütunlu (Ekonomik/Yoğun)</option>
+                            </select>
+                        </div>
+
+                        <!-- Booklet Count -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><i class="bi bi-journal-album"></i> Kitapçık Türü (Sayısı)</label>
+                            <select class="form-select" id="exportGroupCount">
+                                <option value="1" selected>1 (Sadece A Kitapçığı)</option>
+                                <option value="2">2 (A, B Kitapçıkları)</option>
+                                <option value="3">3 (A, B, C Kitapçıkları)</option>
+                                <option value="4">4 (A, B, C, D Kitapçıkları)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Optimization Checkbox (Visible only when Booklet Count == 1) -->
+                        <div class="form-check form-switch mb-3" id="exportOptimizationContainer">
+                            <input class="form-check-input" type="checkbox" role="switch" id="exportOptimization">
+                            <label class="form-check-label fw-bold" for="exportOptimization">Boyut Optimizasyonu Olsun mu? (Boşlukları en aza indirir)</label>
+                        </div>
+
+                        <!-- Header and Footer -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold" for="exportHeader"><i class="bi bi-input-cursor-text"></i> Üst Bilgi (Başlık)</label>
+                            <input type="text" class="form-control" id="exportHeader" placeholder="Örn: 1. Dönem 1. Matematik Sınavı">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold" for="exportFooter"><i class="bi bi-info-circle"></i> Alt Bilgi (Footer)</label>
+                            <input type="text" class="form-control" id="exportFooter" placeholder="Örn: Başarılar Dileriz. Süre: 40dk">
+                        </div>
+
+                        <!-- Alignment Selection -->
+                        <div class="mb-3" id="pdfAlignmentContainer">
+                            <label class="form-label fw-bold"><i class="bi bi-align-start"></i> Soru Hizalaması (Yalnızca PDF)</label>
+                            <select class="form-select" id="exportAlignment">
+                                <option value="left" selected>Sola Yasla (Sol Sütun hizalı)</option>
+                                <option value="center">Ortala (Soru metnini ve resmi ortala)</option>
+                                <option value="justify">İki Yana Yasla (Dengeli)</option>
+                            </select>
+                        </div>
+
+                        <!-- Image Width Selection -->
+                        <div class="mb-3" id="pdfImageWidthContainer">
+                            <label class="form-label fw-bold"><i class="bi bi-image"></i> Soru Resimlerinin Boyutu (Yalnızca PDF)</label>
+                            <select class="form-select" id="exportImageWidth">
+                                <option value="optimize" selected>Optimize Genişlik (Önerilen - Otomatik Sığdır)</option>
+                                <option value="fit">Sütuna Sığdır (Sütun genişliğini %100 kaplasın)</option>
+                                <option value="original">Orijinal Resim Genişliği (Maksimum boyutta)</option>
+                            </select>
+                        </div>
+
+                        <!-- Answer Key Toggle -->
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="exportAnswerKey" checked>
+                            <label class="form-check-label fw-bold" for="exportAnswerKey">Cevap Anahtarı Ekle</label>
+                        </div>
+                        
+                        <!-- Layout Toggles -->
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" role="switch" id="exportOgrenciBilgi" checked>
+                            <label class="form-check-label fw-bold" for="exportOgrenciBilgi">Öğrenci Bilgi Alanı Ekle</label>
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" role="switch" id="exportSayfaNo" checked>
+                            <label class="form-check-label fw-bold" for="exportSayfaNo">Sayfa Numaralarını Göster</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="exportUstAltBilgi" checked>
+                            <label class="form-check-label fw-bold" for="exportUstAltBilgi">Üst/Alt Bilgi (Başlık/Footer) Göster</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light border-top-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary" id="btnExportConfirm" onclick="exportYap()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:none;">
+                        <i class="bi bi-file-earmark-arrow-down"></i> Belgeyi Oluştur
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- ============================================
          JAVASCRIPT KÜTÜPHANELERİ
          ============================================ -->
@@ -587,11 +1014,20 @@
     <!-- Cropper.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    
     <!-- html2pdf.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <!-- html-docx.js -->
     <script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
+    
+    <!-- html2pdf.js for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <!-- FileSaver.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -601,10 +1037,18 @@
     
     <!-- ÖZEL JAVASCRIPT DOSYALARI -->
     
-    <script src="~/js/ders-yonetimi.js"></script>
-    <script src="~/js/export-handler.js"></script>
-    <script src="~/lib/sqljs/sql-wasm.js"></script>
-    <script src="~/js/soru-bankasi.js"></script>
+    <script src="~/js/ders-yonetimi.js" asp-append-version="true"></script>
+    <script src="~/js/export-handler.js" asp-append-version="true"></script>
+    <script src="~/lib/sqljs/sql-wasm.js" asp-append-version="true"></script>
+    <!-- SHIELD_ENCRYPTION_START: Add password variable and Encryption service -->
+    <script>
+        window.USER_DB_PASSWORD = "@ViewData["Sifre"]";
+        window.USER_ROLE = "@Context.Session.GetString("KullaniciTuru")";
+    </script>
+    <script src="~/js/aes-encryption.js?v=2" asp-append-version="true"></script>
+    <!-- SHIELD_ENCRYPTION_END -->
+    <script src="~/js/soru-bankasi.js?v=2" asp-append-version="true"></script>
+    <script src="~/js/client-db-service.js?v=2" asp-append-version="true"></script>
     
 </body>
 </html>

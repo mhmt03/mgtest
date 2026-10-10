@@ -1,3 +1,8 @@
+function getLocalKey(key) {
+    const userId = window.currentUserId || 'guest';
+    return key + '_' + userId;
+}
+
 // ============================================
 // SEPET SAYFASI - sepet.js
 // ============================================
@@ -19,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // ============================================
 function loadSepet() {
     try {
-        const raw = localStorage.getItem('sepetSorular');
+        const raw = localStorage.getItem(getLocalKey('sepetSorular'));
         if (raw) {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) {
@@ -154,7 +159,7 @@ function initSortable() {
                 }
             });
             sepetSorular = newOrder;
-            localStorage.setItem('sepetSorular', JSON.stringify(sepetSorular));
+            localStorage.setItem(getLocalKey('sepetSorular'), JSON.stringify(sepetSorular));
             window.dispatchEvent(new Event('updateCartBadge'));
             renderSepet();
         }
@@ -167,7 +172,7 @@ function initSortable() {
 function sepettenSil(index) {
     if (index < 0 || index >= sepetSorular.length) return;
     sepetSorular.splice(index, 1);
-    localStorage.setItem('sepetSorular', JSON.stringify(sepetSorular));
+    localStorage.setItem(getLocalKey('sepetSorular'), JSON.stringify(sepetSorular));
     window.dispatchEvent(new Event('updateCartBadge'));
     renderSepet();
     showSepetNotification(`Soru sepetten çıkarıldı. (${sepetSorular.length} soru kaldı)`, 'info');
@@ -187,7 +192,7 @@ function sepetTemizle() {
     }
 
     sepetSorular = [];
-    localStorage.removeItem('sepetSorular');
+    localStorage.removeItem(getLocalKey('sepetSorular'));
     window.dispatchEvent(new Event('updateCartBadge'));
     renderSepet();
     showSepetNotification('Sepet temizlendi!', 'success');
@@ -252,7 +257,7 @@ async function bankayiKaydet() {
                 setTimeout(() => {
                     if (confirm('Dosya indirildi. Sepeti temizlemek ister misiniz?')) {
                         sepetSorular = [];
-                        localStorage.removeItem('sepetSorular');
+                        localStorage.removeItem(getLocalKey('sepetSorular'));
                         window.dispatchEvent(new Event('updateCartBadge'));
                         renderSepet();
                     }
@@ -319,3 +324,96 @@ function showSepetNotification(message, type = 'info') {
 window.sepettenSil = sepettenSil;
 window.sepetTemizle = sepetTemizle;
 window.bankayiKaydet = bankayiKaydet;
+
+// ============================================
+// SEPETİ DIŞA AKTAR (PDF/DOCX)
+// ============================================
+async function exportCart(type) {
+    if (sepetSorular.length === 0) {
+        showSepetNotification('Sepette dışa aktarılacak soru yok!', 'warning');
+        return;
+    }
+
+    const btnId = type === 'pdf' ? 'exportPdfBtn' : 'exportDocxBtn';
+    const btn = document.getElementById(btnId);
+    let originalText = '';
+
+    const sutunSayisi = document.getElementById('sepetSutunSayisi')?.value || 2;
+    const testBasligi = document.getElementById('sepetTestBasligi')?.value || '';
+    const anahtarEkle = document.getElementById('sepetAnahtarEkle')?.checked ?? true;
+
+    if (btn) {
+        originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Hazırlanıyor...';
+    }
+
+    try {
+        const payload = {
+            Sorular: sepetSorular,
+            Type: type,
+            SutunSayisi: parseInt(sutunSayisi),
+            Baslik: testBasligi,
+            AnahtarEkle: anahtarEkle
+        };
+
+        const response = await fetch('/mgtest/ExportCart', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            // Dosyayı blob olarak al
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            
+            const bankaAdi = document.getElementById('sepetBankaAdi')?.value.trim() || 'sepet';
+            const ext = type === 'pdf' ? 'pdf' : 'docx';
+            const filename = `${bankaAdi}_${new Date().getTime()}.${ext}`;
+
+            // Gizli bir link oluşturup tıkla
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            
+            // Temizlik
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            showSepetNotification('Dosya başarıyla indirildi!', 'success');
+        } else {
+            const errText = await response.text();
+            throw new Error(errText || response.statusText);
+        }
+    } catch (error) {
+        console.error('Dışa aktarma hatası:', error);
+        showSepetNotification('Dışa aktarma sırasında hata oluştu: ' + error.message, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+}
+
+window.exportCart = exportCart;
+
+// ============================================
+// TÜM KARTLARI DARALT/GENİŞLET (toggleAllCards)
+// ============================================
+function toggleAllCards(isCollapsed) {
+    const bodies = document.querySelectorAll('.question-body');
+    bodies.forEach(body => {
+        if (isCollapsed) {
+            body.classList.add('d-none');
+        } else {
+            body.classList.remove('d-none');
+        }
+    });
+}
+window.toggleAllCards = toggleAllCards;

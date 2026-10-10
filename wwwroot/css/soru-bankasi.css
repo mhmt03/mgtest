@@ -519,3 +519,53 @@ body {
         background: white;
     }
 }
+
+/* ============================================
+   MATEMATİK & SEMBOL ARAÇ ÇUBUĞU
+   ============================================ */
+
+.math-toolbar {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.math-toolbar .math-btn {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    min-width: 28px;
+    height: 26px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.math-toolbar .math-grid-btn {
+    font-size: 0.95rem;
+    min-width: 32px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: all 0.15s ease;
+}
+
+.math-toolbar .math-grid-btn:hover,
+.math-toolbar .math-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.math-toolbar .nav-pills .nav-link {
+    color: #475569;
+    border-radius: 4px;
+    font-weight: 500;
+    background: #f1f5f9;
+    margin: 0 2px;
+}
+
+.math-toolbar .nav-pills .nav-link.active {
+    background-color: #3b82f6;
+    color: #fff;
+}

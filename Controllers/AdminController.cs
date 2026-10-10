@@ -88,7 +88,7 @@ namespace mgtest.Controllers
         // POST: /Admin/Edit
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Kullanici model)
+        public async Task<IActionResult> Edit(int id, Kullanici model, string? yeniSifre)
         {
             var kullaniciId = GetKullaniciId();
             if (kullaniciId == null)
@@ -107,12 +107,26 @@ namespace mgtest.Controllers
                 return RedirectToAction("Kullanicilar");
             }
 
+            if (!string.IsNullOrEmpty(yeniSifre))
+            {
+                if (yeniSifre.Length < 6)
+                {
+                    ViewBag.Error = "Yeni şifre en az 6 karakter olmalıdır.";
+                    ViewBag.KullaniciTurleri = Enum.GetNames(typeof(KullaniciTuru));
+                    return View(kullanici);
+                }
+                kullanici.Sifre = _encryptionService.HashPassword(yeniSifre);
+            }
+
             kullanici.Ad = model.Ad;
             kullanici.Soyad = model.Soyad;
             kullanici.Email = model.Email;
             kullanici.AktifMi = model.AktifMi;
             kullanici.KullaniciTuru = model.KullaniciTuru;
             kullanici.SonKullanmaTarihi = model.SonKullanmaTarihi;
+            // SHIELD_ENCRYPTION_START
+            kullanici.VeriTabanSifresi = model.VeriTabanSifresi;
+            // SHIELD_ENCRYPTION_END
 
             await _context.SaveChangesAsync();
 
@@ -227,14 +241,16 @@ namespace mgtest.Controllers
 
             // Varsayılan ders, konu ve kazanım ekleme
             var varsayilanDers = new Ders { DersAdi = "ders yok" };
-            var varsayilanKonu = new Konu { KonuAdi = "konu yok", DersId = varsayilanDers.Id };
-            var varsayilanKazanim = new Kazanim { KazanimAdi = "kazanım yok", KonuId = varsayilanKonu.Id };
-
             _context.Dersler.Add(varsayilanDers);
-            _context.Konular.Add(varsayilanKonu);
-            _context.Kazanimlar.Add(varsayilanKazanim);
+            await _context.SaveChangesAsync(); // Ders kaydedilip otomatik ID oluşturulur
 
-            await _context.SaveChangesAsync();
+            var varsayilanKonu = new Konu { KonuAdi = "konu yok", DersId = varsayilanDers.Id };
+            _context.Konular.Add(varsayilanKonu);
+            await _context.SaveChangesAsync(); // Konu kaydedilip otomatik ID oluşturulur
+
+            var varsayilanKazanim = new Kazanim { KazanimAdi = "kazanım yok", KonuId = varsayilanKonu.Id, DersId = varsayilanDers.Id };
+            _context.Kazanimlar.Add(varsayilanKazanim);
+            await _context.SaveChangesAsync(); // Kazanım kaydedilir
 
             TempData["Success"] = "Kullanıcı başarıyla oluşturuldu.";
             return RedirectToAction("Kullanicilar");
@@ -352,5 +368,70 @@ namespace mgtest.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
+
+        // SHIELD_ENCRYPTION_START: Site activity log and log clearing endpoints
+        // GET: /Admin/SiteLoglari
+        [HttpGet]
+        public async Task<IActionResult> SiteLoglari()
+        {
+            var kullaniciId = GetKullaniciId();
+            if (kullaniciId == null)
+                return RedirectToAction("Login", "Account");
+
+            if (!IsAdmin())
+            {
+                TempData["Error"] = "Yetkiniz yok.";
+                return RedirectToAction("Index", "mgtest");
+            }
+
+            var logContent = await _fileLogService.GetSiteLogContent();
+            ViewBag.LogContent = logContent;
+            return View();
+        }
+
+        // POST: /Admin/ClearSiteLog
+        [HttpPost]
+        public async Task<IActionResult> ClearSiteLog()
+        {
+            var kullaniciId = GetKullaniciId();
+            if (kullaniciId == null)
+                return Json(new { success = false, message = "Oturum bulunamadı" });
+
+            if (!IsAdmin())
+                return Json(new { success = false, message = "Yetkiniz yok" });
+
+            try
+            {
+                await _fileLogService.ClearSiteLog();
+                return Json(new { success = true, message = "Site hareket logları başarıyla temizlendi." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // POST: /Admin/ClearDosyaLog
+        [HttpPost]
+        public async Task<IActionResult> ClearDosyaLog()
+        {
+            var kullaniciId = GetKullaniciId();
+            if (kullaniciId == null)
+                return Json(new { success = false, message = "Oturum bulunamadı" });
+
+            if (!IsAdmin())
+                return Json(new { success = false, message = "Yetkiniz yok" });
+
+            try
+            {
+                await _fileLogService.ClearDosyaLog();
+                return Json(new { success = true, message = "Dosya şifre logları başarıyla temizlendi." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+        // SHIELD_ENCRYPTION_END
     }
 }

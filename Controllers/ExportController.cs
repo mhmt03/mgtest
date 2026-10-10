@@ -30,7 +30,7 @@ namespace mgtest.Controllers
             var tempFilePath = HttpContext.Session.GetString(sessionKey);
             if (string.IsNullOrEmpty(tempFilePath))
             {
-                TempData["Error"] = "Soru bankas� bulunamad�.";
+                TempData["Error"] = "Soru bankası bulunamadı.";
                 return RedirectToAction("Index", "mgtest");
             }
 
@@ -38,7 +38,7 @@ namespace mgtest.Controllers
 
             ViewBag.SessionKey = sessionKey;
             ViewBag.SecilenIds = secilenIds;
-            ViewBag.BankaAdi = ayarlar?.BankaAdi ?? "Soru Bankas�";
+            ViewBag.BankaAdi = ayarlar?.BankaAdi ?? "Soru Bankası";
             ViewBag.VarsayilanSutun = ayarlar?.VarsayilanSutunSayisi ?? 2;
             ViewBag.VarsayilanHeader = ayarlar?.VarsayilanHeader;
             ViewBag.VarsayilanFooter = ayarlar?.VarsayilanFooter;
@@ -48,6 +48,7 @@ namespace mgtest.Controllers
         }
 
         // POST: /Export/GeneratePdf
+        // PDF sınav kağıdı üretir (Geriye dönük uyumluluk ve sunucu tarafı DOCX-to-PDF çağrıları için)
         [HttpPost]
         public async Task<IActionResult> GeneratePdf(
             string sessionKey,
@@ -64,7 +65,7 @@ namespace mgtest.Controllers
             var tempFilePath = HttpContext.Session.GetString(sessionKey);
             if (string.IsNullOrEmpty(tempFilePath))
             {
-                TempData["Error"] = "Soru bankas� bulunamad�.";
+                TempData["Error"] = "Soru bankası bulunamadı.";
                 return RedirectToAction("Index", "mgtest");
             }
 
@@ -72,7 +73,7 @@ namespace mgtest.Controllers
             {
                 var sorular = await _sqliteService.GetSorular(tempFilePath);
 
-                // Se�ili sorular� filtrele
+                // Seçili soruları ID listesine göre filtrele
                 if (!string.IsNullOrEmpty(secilenIds))
                 {
                     var ids = secilenIds.Split(',').Select(int.Parse).ToList();
@@ -81,19 +82,24 @@ namespace mgtest.Controllers
 
                 if (!sorular.Any())
                 {
-                    TempData["Error"] = "Hi� soru se�ilmedi.";
+                    TempData["Error"] = "Hiç soru seçilmedi.";
                     return RedirectToAction("Options", new { sessionKey, secilenIds });
                 }
 
+                // Sütun sayısına göre uygun şablonu belirle
+                string sablonAdi = sutunSayisi == 3 ? "3_.docx" : $"{sutunSayisi}.docx";
+                string sablonYolu = $"templates/{sablonAdi}";
+
                 var options = new ExportOptions
                 {
-                    SutunSayisi = sutunSayisi,
                     HeaderMetni = header,
                     FooterMetni = footer,
-                    AnahtarEkle = anahtarEkle
+                    AnahtarEkle = anahtarEkle,
+                    SablonDosyaYolu = sablonYolu
                 };
 
-                var pdfBytes = await _exportService.ExportToPdf(sorular, options);
+                // Word olarak üret ve PDF formatında indirilmesi için başlıkları ayarla
+                var pdfBytes = await _exportService.ExportToDocx(sorular, options);
                 var ayarlar = await _sqliteService.GetBankaAyarlari(tempFilePath);
                 var fileName = $"{ayarlar?.BankaAdi ?? "mgtest"}_{DateTime.Now:yyyyMMdd}.pdf";
 
@@ -101,12 +107,13 @@ namespace mgtest.Controllers
             }
             catch (Exception ex)
             {
-                TempData["Error"] = $"PDF olu�turulurken hata: {ex.Message}";
+                TempData["Error"] = $"PDF oluşturulurken hata: {ex.Message}";
                 return RedirectToAction("Options", new { sessionKey, secilenIds });
             }
         }
 
         // POST: /Export/GenerateDocx
+        // Word sınav belgesi üretir (Şablondaki {sorular} ve {anahtar} yerlerini doldurur)
         [HttpPost]
         public async Task<IActionResult> GenerateDocx(
             string sessionKey,
@@ -123,7 +130,7 @@ namespace mgtest.Controllers
             var tempFilePath = HttpContext.Session.GetString(sessionKey);
             if (string.IsNullOrEmpty(tempFilePath))
             {
-                TempData["Error"] = "Soru bankas� bulunamad�.";
+                TempData["Error"] = "Soru bankası bulunamadı.";
                 return RedirectToAction("Index", "mgtest");
             }
 
@@ -131,7 +138,7 @@ namespace mgtest.Controllers
             {
                 var sorular = await _sqliteService.GetSorular(tempFilePath);
 
-                // Se�ili sorular� filtrele
+                // Seçili soruları ID listesine göre filtrele
                 if (!string.IsNullOrEmpty(secilenIds))
                 {
                     var ids = secilenIds.Split(',').Select(int.Parse).ToList();
@@ -140,16 +147,20 @@ namespace mgtest.Controllers
 
                 if (!sorular.Any())
                 {
-                    TempData["Error"] = "Hi� soru se�ilmedi.";
+                    TempData["Error"] = "Hiç soru seçilmedi.";
                     return RedirectToAction("Options", new { sessionKey, secilenIds });
                 }
 
+                // Sütun sayısına göre uygun şablonu belirle
+                string sablonAdi = sutunSayisi == 3 ? "3_.docx" : $"{sutunSayisi}.docx";
+                string sablonYolu = $"templates/{sablonAdi}";
+
                 var options = new ExportOptions
                 {
-                    SutunSayisi = sutunSayisi,
                     HeaderMetni = header,
                     FooterMetni = footer,
-                    AnahtarEkle = anahtarEkle
+                    AnahtarEkle = anahtarEkle,
+                    SablonDosyaYolu = sablonYolu
                 };
 
                 var docxBytes = await _exportService.ExportToDocx(sorular, options);
@@ -160,7 +171,7 @@ namespace mgtest.Controllers
             }
             catch (Exception ex)
             {
-                TempData["Error"] = $"DOCX olu�turulurken hata: {ex.Message}";
+                TempData["Error"] = $"DOCX oluşturulurken hata: {ex.Message}";
                 return RedirectToAction("Options", new { sessionKey, secilenIds });
             }
         }

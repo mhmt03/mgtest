@@ -13,6 +13,12 @@ namespace mgtest.Services
         Task<List<FileLogEntry>> GetLogEntries();
         Task UpdateFilePassword(string dosyaId, string newPassword);
         Task LogDetay(string islem, int? kullaniciId = null, string? detay = null);
+        // SHIELD_ENCRYPTION_START
+        Task LogSiteActivity(string username, string ip, string method, string path);
+        Task<string> GetSiteLogContent();
+        Task ClearSiteLog();
+        Task ClearDosyaLog();
+        // SHIELD_ENCRYPTION_END
     }
 
     public class FileLogEntry
@@ -31,6 +37,9 @@ namespace mgtest.Services
     {
         private readonly string _logFilePath;
         private readonly string _detailLogFilePath;
+        // SHIELD_ENCRYPTION_START
+        private readonly string _siteLogFilePath;
+        // SHIELD_ENCRYPTION_END
         private readonly IConfiguration _configuration;
         private static readonly object _logLock = new object();
 
@@ -46,6 +55,9 @@ namespace mgtest.Services
 
             _logFilePath = Path.Combine(logFolder, "DosyaSifreLog.txt");
             _detailLogFilePath = Path.Combine(logFolder, "SifreAtamaDetay.txt");
+            // SHIELD_ENCRYPTION_START
+            _siteLogFilePath = Path.Combine(logFolder, "SiteHareketLog.txt");
+            // SHIELD_ENCRYPTION_END
         }
 
         // Detaylı log yazma
@@ -243,8 +255,75 @@ namespace mgtest.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Şifre güncelleme hatası: {ex.Message}");
+                Console.WriteLine($"şifre güncelleme hatası: {ex.Message}");
             }
         }
+
+        // SHIELD_ENCRYPTION_START: Site Activity logging and clearing methods
+        public async Task LogSiteActivity(string username, string ip, string method, string path)
+        {
+            var entry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Kullanici: {username} | IP: {ip} | Yontem: {method} | Yol: {path}";
+            try
+            {
+                lock (_logLock)
+                {
+                    File.AppendAllText(_siteLogFilePath, entry + Environment.NewLine, Encoding.UTF8);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Site log yazma hatasi: {ex.Message}");
+            }
+        }
+
+        public async Task<string> GetSiteLogContent()
+        {
+            try
+            {
+                if (!File.Exists(_siteLogFilePath))
+                    return "Site hareket logu henüz oluşturulmadı.";
+                lock (_logLock)
+                {
+                    return File.ReadAllText(_siteLogFilePath, Encoding.UTF8);
+                }
+            }
+            catch (Exception ex)
+            {
+                return $"Site log okunurken hata: {ex.Message}";
+            }
+        }
+
+        public async Task ClearSiteLog()
+        {
+            try
+            {
+                lock (_logLock)
+                {
+                    if (File.Exists(_siteLogFilePath))
+                        File.WriteAllText(_siteLogFilePath, "", Encoding.UTF8);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Site log temizleme hatasi: {ex.Message}");
+            }
+        }
+
+        public async Task ClearDosyaLog()
+        {
+            try
+            {
+                lock (_logLock)
+                {
+                    if (File.Exists(_logFilePath))
+                        File.WriteAllText(_logFilePath, "", Encoding.UTF8);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Dosya log temizleme hatasi: {ex.Message}");
+            }
+        }
+        // SHIELD_ENCRYPTION_END
     }
 }

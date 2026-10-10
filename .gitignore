@@ -35,6 +35,7 @@ nuget.exe
 appsettings.*.json
 appsettings.json
 appsettings.Development.json
+!appsettings.example.json
 
 # MSTest test results
 [Tt]est[Rr]esult*/
@@ -81,3 +82,16 @@ secrets.json
 # Azure
 *.azure
 *.pubxml
+
+# Temporary and test files
+temp_*.*
+test.js
+*.exe
+/scratch/
+
+# Database logs and local runtime data
+/db/
+
+# Template archive temp files
+wwwroot/templates/*.zip
+wwwroot/templates/unzip_*/

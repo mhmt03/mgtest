@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
+ï»¿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using mgtest.Data;
 using mgtest.Models;
+using mgtest.Services;
 
 namespace mgtest.Controllers
 {
@@ -14,7 +15,7 @@ namespace mgtest.Controllers
             _context = context;
         }
 
-        // Veri tabaný þifresi oluþtur (KullaniciAdi + rastgele sayý)
+        // Veri tabanÄ± ÅŸifresi oluÅŸtur (KullaniciAdi + rastgele sayÄ±)
         private string GenerateDatabasePassword(string kullaniciAdi)
         {
             var randomNumbers = new Random().Next(10000, 99999).ToString();
@@ -25,7 +26,7 @@ namespace mgtest.Controllers
         [HttpGet]
         public IActionResult Login()
         {
-            // Zaten giriþ yapmýþsa ana sayfaya yönlendir
+            // Zaten giriÅŸ yapmÄ±ÅŸsa ana sayfaya yÃ¶nlendir
             if (HttpContext.Session.GetInt32("KullaniciId") != null)
             {
                 return RedirectToAction("Index", "mgtest");
@@ -40,7 +41,7 @@ namespace mgtest.Controllers
         {
             if (string.IsNullOrEmpty(kullaniciAdi) || string.IsNullOrEmpty(sifre))
             {
-                ViewBag.Error = "Kullanýcý adý ve þifre zorunludur.";
+                ViewBag.Error = "KullanÄ±cÄ± adÄ± ve ÅŸifre zorunludur.";
                 return View();
             }
 
@@ -49,14 +50,14 @@ namespace mgtest.Controllers
 
             if (kullanici == null || kullanici.Sifre != sifre)
             {
-                ViewBag.Error = "Kullanýcý adý veya þifre hatalý.";
+                ViewBag.Error = "KullanÄ±cÄ± adÄ± veya ÅŸifre hatalÄ±.";
                 return View();
             }
 
-            // Süresi geçen kullanýcýyý kontrol et
+            // SÃ¼resi geÃ§en kullanÄ±cÄ±yÄ± kontrol et
             if (kullanici.SonKullanmaTarihi < DateTime.Now)
             {
-                // Otomatik olarak kisitliUser'a çevir
+                // Otomatik olarak kisitliUser'a Ã§evir
                 kullanici.KullaniciTuru = KullaniciTuru.kisitliUser;
                 await _context.SaveChangesAsync();
             }
@@ -66,8 +67,9 @@ namespace mgtest.Controllers
             HttpContext.Session.SetString("KullaniciAdi", kullanici.KullaniciAdi);
             HttpContext.Session.SetString("AdSoyad", $"{kullanici.Ad} {kullanici.Soyad}");
             HttpContext.Session.SetString("KullaniciTuru", kullanici.KullaniciTuru.ToString());
+            HttpContext.Session.SetString("SonKullanmaTarihi", kullanici.SonKullanmaTarihi.ToString("dd.MM.yyyy"));
 
-            // Doðrudan ana sayfaya yönlendir (register deðil)
+            // DoÄŸrudan ana sayfaya yÃ¶nlendir (register deÄŸil)
             return RedirectToAction("Index", "mgtest");
         }
 
@@ -94,27 +96,27 @@ namespace mgtest.Controllers
 
             if (model.Sifre != sifreTekrar)
             {
-                ViewBag.Error = "Þifreler eþleþmiyor.";
+                ViewBag.Error = "Åžifreler eÅŸleÅŸmiyor.";
                 return View(model);
             }
 
             if (model.Sifre.Length < 6)
             {
-                ViewBag.Error = "Þifre en az 6 karakter olmalýdýr.";
+                ViewBag.Error = "Åžifre en az 6 karakter olmalÄ±dÄ±r.";
                 return View(model);
             }
 
-            // Kullanýcý adý kontrolü
+            // KullanÄ±cÄ± adÄ± kontrolÃ¼
             if (await _context.Kullanicilar.AnyAsync(k => k.KullaniciAdi == model.KullaniciAdi))
             {
-                ViewBag.Error = "Bu kullanýcý adý zaten kullanýlýyor.";
+                ViewBag.Error = "Bu kullanÄ±cÄ± adÄ± zaten kullanÄ±lÄ±yor.";
                 return View(model);
             }
 
-            // Email kontrolü
+            // Email kontrolÃ¼
             if (await _context.Kullanicilar.AnyAsync(k => k.Email == model.Email))
             {
-                ViewBag.Error = "Bu email adresi zaten kullanýlýyor.";
+                ViewBag.Error = "Bu email adresi zaten kullanÄ±lÄ±yor.";
                 return View(model);
             }
 
@@ -122,9 +124,9 @@ namespace mgtest.Controllers
             // SonKullanmaTarihi = KayitTarihi + 1 ay
             model.SonKullanmaTarihi = DateTime.Now.AddMonths(1);
             model.AktifMi = true;
-            // Default kullanýcý türü = kisitliUser
+            // Default kullanÄ±cÄ± tÃ¼rÃ¼ = kisitliUser
             model.KullaniciTuru = KullaniciTuru.kisitliUser;
-            // Veri tabaný þifresi oluþtur
+            // Veri tabanÄ± ÅŸifresi oluÅŸtur
             model.VeriTabanSifresi = GenerateDatabasePassword(model.KullaniciAdi);
 
             try
@@ -132,12 +134,12 @@ namespace mgtest.Controllers
                 _context.Kullanicilar.Add(model);
                 await _context.SaveChangesAsync();
 
-                ViewBag.Success = "Kayýt baþarýlý! Giriþ yapabilirsiniz.";
+                ViewBag.Success = "KayÄ±t baÅŸarÄ±lÄ±! GiriÅŸ yapabilirsiniz.";
                 return View("Login");
             }
             catch (Exception ex)
             {
-                ViewBag.Error = $"Kayýt sýrasýnda hata oluþtu: {ex.Message}";
+                ViewBag.Error = $"KayÄ±t sÄ±rasÄ±nda hata oluÅŸtu: {ex.Message}";
                 if (ex.InnerException != null)
                 {
                     ViewBag.Error += $" | {ex.InnerException.Message}";
@@ -193,18 +195,18 @@ namespace mgtest.Controllers
             kullanici.Soyad = soyad;
             kullanici.Email = email;
 
-            // Þifre deðiþikliði varsa
+            // Åžifre deÄŸiÅŸikliÄŸi varsa
             if (!string.IsNullOrEmpty(yeniSifre))
             {
                 if (yeniSifre != yeniSifreTekrar)
                 {
-                    ViewBag.Error = "Yeni þifreler eþleþmiyor.";
+                    ViewBag.Error = "Yeni ÅŸifreler eÅŸleÅŸmiyor.";
                     return View("Profile", kullanici);
                 }
 
                 if (yeniSifre.Length < 6)
                 {
-                    ViewBag.Error = "Yeni þifre en az 6 karakter olmalýdýr.";
+                    ViewBag.Error = "Yeni ÅŸifre en az 6 karakter olmalÄ±dÄ±r.";
                     return View("Profile", kullanici);
                 }
 
@@ -213,10 +215,10 @@ namespace mgtest.Controllers
 
             await _context.SaveChangesAsync();
 
-            // Session'ý güncelle
+            // Session'Ä± gÃ¼ncelle
             HttpContext.Session.SetString("AdSoyad", $"{kullanici.Ad} {kullanici.Soyad}");
 
-            ViewBag.Success = "Profil baþarýyla güncellendi.";
+            ViewBag.Success = "Profil baÅŸarÄ±yla gÃ¼ncellendi.";
             return View("Profile", kullanici);
         }
     }
