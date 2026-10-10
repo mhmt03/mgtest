@@ -11,12 +11,21 @@ namespace mgtest.Controllers
         private readonly ServerDbContext _context;
         private readonly IEncryptionService _encryptionService;
         private readonly IFileLogService _fileLogService;
+        private readonly IBankaDonusturucuService _donusturucuService;
+        private readonly IConfiguration _configuration;
 
-        public AdminController(ServerDbContext context, IEncryptionService encryptionService, IFileLogService fileLogService)
+        public AdminController(
+            ServerDbContext context,
+            IEncryptionService encryptionService,
+            IFileLogService fileLogService,
+            IBankaDonusturucuService donusturucuService,
+            IConfiguration configuration)
         {
             _context = context;
             _encryptionService = encryptionService;
             _fileLogService = fileLogService;
+            _donusturucuService = donusturucuService;
+            _configuration = configuration;
         }
 
         private int? GetKullaniciId()
@@ -433,5 +442,78 @@ namespace mgtest.Controllers
             }
         }
         // SHIELD_ENCRYPTION_END
+
+        // GET: /Admin/BankaDonusturucu
+        [HttpGet]
+        public IActionResult BankaDonusturucu()
+        {
+            var kullaniciId = GetKullaniciId();
+            if (kullaniciId == null)
+                return RedirectToAction("Login", "Account");
+
+            if (!IsAdmin())
+            {
+                TempData["Error"] = "Bu bölüme yalnızca yöneticiler erişebilir.";
+                return RedirectToAction("Index", "mgtest");
+            }
+
+            return View();
+        }
+
+        // POST: /Admin/SemaAnalizEt
+        [HttpPost]
+        public async Task<IActionResult> SemaAnalizEt(IFormFile dosya)
+        {
+            var kullaniciId = GetKullaniciId();
+            if (kullaniciId == null || !IsAdmin())
+                return Unauthorized();
+
+            if (dosya == null || dosya.Length == 0)
+                return Json(new { basarili = false, mesaj = "Lütfen bir veritabanı dosyası seçin." });
+
+            using var stream = dosya.OpenReadStream();
+            var sonuc = await _donusturucuService.SemaAnalizEtAsync(stream);
+            return Json(sonuc);
+        }
+
+        // POST: /Admin/BankaDonustur
+        [HttpPost]
+        public async Task<IActionResult> BankaDonustur(IFormFile dosya, [FromForm] BankaDonusturmeAyarlari ayarlar)
+        {
+            var kullaniciId = GetKullaniciId();
+            if (kullaniciId == null || !IsAdmin())
+                return Unauthorized();
+
+            if (dosya == null || dosya.Length == 0)
+                return Json(new { basarili = false, mesaj = "Lütfen bir veritabanı dosyası (.hzb, .db, .sqlite vb.) yükleyin." });
+
+            if (string.IsNullOrWhiteSpace(ayarlar.SoruTabloAdi) || string.IsNullOrWhiteSpace(ayarlar.SoruMetniVeyaResmiKolon))
+                return Json(new { basarili = false, mesaj = "Soru tablosu ve soru metni/resmi kolon adı zorunludur." });
+
+            using var stream = dosya.OpenReadStream();
+            var sonuc = await _donusturucuService.DonusturAsync(kullaniciId.Value, stream, ayarlar);
+            return Json(sonuc);
+        }
+
+        // GET: /Admin/DownloadConvertedBank
+        [HttpGet]
+        public async Task<IActionResult> DownloadConvertedBank(string dosyaId)
+        {
+            var kullaniciId = GetKullaniciId();
+            if (kullaniciId == null || !IsAdmin())
+                return Unauthorized();
+
+            var tempFolder = _configuration["AppSettings:TempFileFolder"] ?? "TempFiles";
+            var filePath = Path.Combine(tempFolder, $"{dosyaId}.mg");
+
+            if (!System.IO.File.Exists(filePath))
+                return NotFound("Dönüştürülen dosya bulunamadı veya süresi doldu.");
+
+            var banka = await _context.KullaniciBankalari.FirstOrDefaultAsync(b => b.DosyaId == dosyaId);
+            var fileName = banka != null ? $"{banka.BankaAdi}.mg" : $"{dosyaId}.mg";
+
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+            return File(fileBytes, "application/octet-stream", fileName);
+        }
     }
 }

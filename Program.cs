@@ -35,6 +35,7 @@ builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 builder.Services.AddScoped<ISqliteFileService, SqliteFileService>();
 builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<IFileLogService, FileLogService>();
+builder.Services.AddScoped<IBankaDonusturucuService, BankaDonusturucuService>();
 //loglama
 builder.Services.AddLogging(logging =>
 {

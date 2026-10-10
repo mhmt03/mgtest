@@ -91,6 +91,7 @@ test.js
 
 # Database logs and local runtime data
 /db/
+/TempFiles/
 
 # Template archive temp files
 wwwroot/templates/*.zip
