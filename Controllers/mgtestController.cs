@@ -1472,6 +1472,12 @@ public string SoruResmi
         public string? KonuAdi { get; set; }
         public string? KazanimAdi { get; set; }
         public string? ZorlukSeviye { get; set; }
+        public string? Kaynak { get; set; }
+        public string? Etiket { get; set; }
+        public string? CozumLinki { get; set; }
+        public string? Aciklama { get; set; }
+        public string? TarihOlusturma { get; set; }
+        public string? TarihDuzenleme { get; set; }
     }
 
     public class SikDto

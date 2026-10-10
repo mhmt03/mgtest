@@ -1,4 +1,4 @@
-@model List<mgtest.Models.Soru>
+﻿@model List<mgtest.Models.Soru>
 @{
     ViewData["Title"] = "Sorular";
     var sessionKey = ViewBag.SessionKey ?? "";
@@ -15,19 +15,22 @@
 
     @if (Model == null || Model.Count == 0)
     {
-        <div class="alert alert-info">Hen�z soru eklenmemi�.</div>
+        <div class="alert alert-info">Henüz soru eklenmemiş.</div>
     }
     else
     {
         <div class="table-responsive">
-            <table class="table table-striped">
+            <table class="table table-striped align-middle">
                 <thead class="table-dark">
                     <tr>
                         <th>ID</th>
                         <th>Soru Metni</th>
                         <th>Zorluk</th>
-                        <th>��aretli</th>
-                        <th>��lemler</th>
+                        <th>Kaynak</th>
+                        <th>Etiketler</th>
+                        <th>Çözüm</th>
+                        <th>Tarih</th>
+                        <th>İşlemler</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -35,12 +38,74 @@
                     {
                         <tr>
                             <td>@soru.Id</td>
-                            <td>@(soru.SoruMetni.Length > 50 ? soru.SoruMetni.Substring(0, 50) + "..." : soru.SoruMetni)</td>
-                            <td><span class="badge bg-info">@soru.ZorlukSeviye</span></td>
-                            <td>@(soru.IsaretliMi ? "?" : "-")</td>
                             <td>
-                                <a href="@Url.Action("Edit", "Soru", new { id = soru.Id })" class="btn btn-sm btn-warning">D�zenle</a>
-                                <button onclick="toggleMark(@soru.Id)" class="btn btn-sm btn-info">��aretle</button>
+                                <div>@(string.IsNullOrEmpty(soru.SoruMetni) ? "(Resimli Soru)" : (soru.SoruMetni.Length > 50 ? soru.SoruMetni.Substring(0, 50) + "..." : soru.SoruMetni))</div>
+                                @if (!string.IsNullOrEmpty(soru.Aciklama))
+                                {
+                                    <small class="text-muted fst-italic"><i class="bi bi-info-circle me-1"></i>@soru.Aciklama</small>
+                                }
+                            </td>
+                            <td>
+                                @switch (soru.ZorlukSeviye)
+                                {
+                                    case mgtest.Models.ZorlukSeviye.cokKolay:
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Çok Kolay</span>
+                                        break;
+                                    case mgtest.Models.ZorlukSeviye.kolay:
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle">Kolay</span>
+                                        break;
+                                    case mgtest.Models.ZorlukSeviye.zor:
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Zor</span>
+                                        break;
+                                    case mgtest.Models.ZorlukSeviye.cokZor:
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Çok Zor</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Orta</span>
+                                        break;
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(soru.Kaynak))
+                                {
+                                    <span class="badge bg-light text-dark border"><i class="bi bi-journal-bookmark text-primary me-1"></i>@soru.Kaynak</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(soru.Etiket))
+                                {
+                                    @foreach (var etiket in soru.Etiket.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries))
+                                    {
+                                        <span class="badge rounded-pill bg-light text-primary border me-1"><i class="bi bi-hash"></i>@etiket.Trim()</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(soru.CozumLinki))
+                                {
+                                    <a href="@soru.CozumLinki" target="_blank" class="btn btn-sm btn-outline-danger" title="Çözümü Aç"><i class="bi bi-play-circle"></i></a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    @(soru.TarihOlusturma.HasValue ? soru.TarihOlusturma.Value.ToString("dd.MM.yyyy") : soru.YuklenmeTarihi.ToString("dd.MM.yyyy"))
+                                </small>
+                            </td>
+                            <td>
+                                <a href="@Url.Action("Edit", "Soru", new { id = soru.Id })" class="btn btn-sm btn-warning">Düzenle</a>
+                                <button onclick="toggleMark(@soru.Id)" class="btn btn-sm btn-info">@(soru.IsaretliMi ? "İşaretli" : "İşaretle")</button>
                             </td>
                         </tr>
                     }

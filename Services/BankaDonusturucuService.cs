@@ -295,7 +295,11 @@ namespace mgtest.Services
                                 DogruCevapSikki = dogruCevap,
                                 ZorlukSeviye = zorluk,
                                 Sira = sira++,
-                                YuklenmeTarihi = DateTime.Now
+                                YuklenmeTarihi = DateTime.Now,
+                                TarihOlusturma = DateTime.Now,
+                                Aciklama = "Yabancı bankadan dönüştürüldü",
+                                Kaynak = !string.IsNullOrWhiteSpace(ayarlar.BankaAdi) ? ayarlar.BankaAdi : "Yabancı Banka",
+                                Etiket = "içe-aktarılan"
                             };
 
                             okunacakSorular.Add(yeniSoru);

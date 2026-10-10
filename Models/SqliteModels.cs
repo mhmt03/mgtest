@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+ï»¿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace mgtest.Models
@@ -13,9 +13,9 @@ namespace mgtest.Models
         cokZor
     }
 
-    // .mg dosyasý içindeki tablolar
+    // .mg dosyasi icindeki tablolar
 
-    // Dosya metadata - güvenlik için
+    // Dosya metadata - guvenlik icin
     public class DosyaMetadata
     {
         [Key]
@@ -45,7 +45,7 @@ namespace mgtest.Models
         public int Id { get; set; }
 
         [StringLength(255)]
-        public string? DersAdi { get; set; } // Made nullable
+        public string? DersAdi { get; set; }
 
         public DateTime EklemeTarihi { get; set; } = DateTime.Now;
     }
@@ -56,10 +56,10 @@ namespace mgtest.Models
         [Key]
         public int Id { get; set; }
 
-        public int? DersId { get; set; } // Made nullable and removed 'Required'
+        public int? DersId { get; set; }
 
         [ForeignKey("DersId")]
-        public virtual Ders? Ders { get; set; } // Made nullable
+        public virtual Ders? Ders { get; set; }
 
         [Required]
         [StringLength(255)]
@@ -74,13 +74,13 @@ namespace mgtest.Models
         [Key]
         public int Id { get; set; }
 
-        public int? DersId { get; set; } // Made nullable and removed 'Required'
+        public int? DersId { get; set; }
 
         [Required]
         public int KonuId { get; set; }
 
         [ForeignKey("KonuId")]
-        public virtual Konu? Konu { get; set; } // Made nullable
+        public virtual Konu? Konu { get; set; }
 
         [Required]
         [StringLength(500)]
@@ -89,16 +89,17 @@ namespace mgtest.Models
         public DateTime EklemeTarihi { get; set; } = DateTime.Now;
     }
 
-    // Soru modeli - .mg dosyasýnda
+    // Soru modeli - .mg dosyasinda
     public class Soru
     {
-        public bool SoruMetniAyriMi { get; set; } = true; // Soru metni ayrý mý yoksa resim içinde mi?
+        public bool SoruMetniAyriMi { get; set; } = true;
         public bool SikkarAyriMi { get; set; }
+        
         [Key]
         public int Id { get; set; }
 
         [StringLength(5000)]
-        public string? SoruMetni { get; set; } // Soru metni artýk opsiyonel
+        public string? SoruMetni { get; set; }
 
         // Base64 encoded resim
         [Column(TypeName = "TEXT")]
@@ -110,10 +111,10 @@ namespace mgtest.Models
         public bool IsaretliMi { get; set; } = false;
 
         [Required]
-        public int DersId { get; set; } // Changed from string to int
+        public int DersId { get; set; }
 
         [ForeignKey("DersId")]
-        public virtual Ders? Ders { get; set; } // Updated to match nullable DersId
+        public virtual Ders? Ders { get; set; }
 
         [Required]
         public int KonuId { get; set; }
@@ -128,14 +129,12 @@ namespace mgtest.Models
         public virtual Kazanim Kazanim { get; set; } = null!;
 
         [StringLength(500)]
-        public string? DogruCevapMetni { get; set; } // Opsiyonel hale getirildi
+        public string? DogruCevapMetni { get; set; }
 
         [StringLength(1)]
-        public string? DogruCevapSikki { get; set; } // Opsiyonel hale getirildi
+        public string? DogruCevapSikki { get; set; }
 
-
-
-        // Þýklar - Base64 encoded resimler
+        // Siklar - Base64 encoded resimler
         [Column(TypeName = "TEXT")]
         public string? ASikkiResmi { get; set; }
 
@@ -154,7 +153,7 @@ namespace mgtest.Models
         [Column(TypeName = "TEXT")]
         public string? FSikkiResmi { get; set; }
 
-        // Þýklar - Metinler
+        // Siklar - Metinler
         [StringLength(500)]
         public string? ASikkiMetni { get; set; }
 
@@ -175,14 +174,31 @@ namespace mgtest.Models
 
         public DateTime YuklenmeTarihi { get; set; } = DateTime.Now;
 
-        // Sýralama için
+        // Siralama icin
         public int Sira { get; set; }
 
         [StringLength(1000)]
         public string? Notlar { get; set; }
+
+        // Soru Ek Ozellikleri & Meta Verileri
+        public DateTime? TarihOlusturma { get; set; } = DateTime.Now;
+
+        public DateTime? TarihDuzenleme { get; set; }
+
+        [StringLength(1000)]
+        public string? Aciklama { get; set; }
+
+        [StringLength(500)]
+        public string? Kaynak { get; set; }
+
+        [StringLength(500)]
+        public string? Etiket { get; set; }
+
+        [StringLength(1000)]
+        public string? CozumLinki { get; set; }
     }
 
-    // Soru Bankasý Ayarlarý - .mg dosyasýnda
+    // Soru Bankasi Ayarlari - .mg dosyasinda
     public class BankaAyarlari
     {
         [Key]
@@ -199,7 +215,7 @@ namespace mgtest.Models
 
         public DateTime SonDuzenleme { get; set; } = DateTime.Now;
 
-        // PDF/DOCX varsayýlan ayarlarý
+        // PDF/DOCX varsayilan ayarlari
         public int VarsayilanSutunSayisi { get; set; } = 2;
 
         [StringLength(500)]

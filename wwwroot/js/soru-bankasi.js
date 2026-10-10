@@ -509,6 +509,15 @@ function soruKaydet(e) {
                 E: document.getElementById('E') ? document.getElementById('E').value.trim() : ''
             },
             dogruSik: document.querySelector('input[name="dogruSik"]:checked')?.value || 'A',
+            zorlukSeviye: document.getElementById('zorlukSelect')?.value || 'orta',
+            kaynak: document.getElementById('kaynakInput')?.value?.trim() || '',
+            etiket: document.getElementById('etiketInput')?.value?.trim() || '',
+            cozumLinki: document.getElementById('cozumLinkiInput')?.value?.trim() || '',
+            aciklama: document.getElementById('aciklamaInput')?.value?.trim() || '',
+            tarihOlusturma: duzenlenenSoruIndex !== null ?
+                (sorular[duzenlenenSoruIndex].tarihOlusturma || sorular[duzenlenenSoruIndex].olusturmaTarihi || new Date().toISOString()) :
+                new Date().toISOString(),
+            tarihDuzenleme: duzenlenenSoruIndex !== null ? new Date().toISOString() : null,
             olusturmaTarihi: duzenlenenSoruIndex !== null ?
                 sorular[duzenlenenSoruIndex].olusturmaTarihi :
                 new Date().toISOString()
@@ -580,6 +589,20 @@ function soruGirisAlanlariniTemizle() {
     const nav = document.getElementById('modalNavigasyon');
     if (nav) nav.classList.add('d-none');
 
+    // 6. Yeni meta alanları temizle / varsayılana getir
+    const zorlukSel = document.getElementById('zorlukSelect');
+    if (zorlukSel) zorlukSel.value = 'orta';
+    const kaynakIn = document.getElementById('kaynakInput');
+    if (kaynakIn) kaynakIn.value = '';
+    const etiketIn = document.getElementById('etiketInput');
+    if (etiketIn) etiketIn.value = '';
+    const cozumIn = document.getElementById('cozumLinkiInput');
+    if (cozumIn) cozumIn.value = '';
+    const aciklamaIn = document.getElementById('aciklamaInput');
+    if (aciklamaIn) aciklamaIn.value = '';
+    const tarihBox = document.getElementById('soruTarihBilgisi');
+    if (tarihBox) { tarihBox.innerHTML = ''; tarihBox.style.display = 'none'; }
+
     // NOT: dersSelect, konuSelect, kazanimSelect (dropdownlist'ler) ve 
     // soruMetniAyriMi, sikkarAyriMi (checkbox switch'ler) durumu kasıtlı olarak DEĞİŞTİRİLMEZ.
 }
@@ -640,6 +663,37 @@ async function duzenleSoru(index) {
         gosterSoruResmiOnizleme(soru.soruResmi);
     } else {
         soruResmiKaldir(true);
+    }
+
+    // Yeni meta alanları doldur
+    if (document.getElementById('zorlukSelect')) {
+        document.getElementById('zorlukSelect').value = soru.zorlukSeviye || 'orta';
+    }
+    if (document.getElementById('kaynakInput')) {
+        document.getElementById('kaynakInput').value = soru.kaynak || '';
+    }
+    if (document.getElementById('etiketInput')) {
+        document.getElementById('etiketInput').value = soru.etiket || '';
+    }
+    if (document.getElementById('cozumLinkiInput')) {
+        document.getElementById('cozumLinkiInput').value = soru.cozumLinki || '';
+    }
+    if (document.getElementById('aciklamaInput')) {
+        document.getElementById('aciklamaInput').value = soru.aciklama || '';
+    }
+    const tarihBox = document.getElementById('soruTarihBilgisi');
+    if (tarihBox) {
+        let tHtml = '';
+        if (soru.tarihOlusturma || soru.olusturmaTarihi) {
+            const d = new Date(soru.tarihOlusturma || soru.olusturmaTarihi);
+            tHtml += `<div><i class="bi bi-calendar-plus text-primary me-1"></i>Oluşturulma: <strong>${d.toLocaleString('tr-TR')}</strong></div>`;
+        }
+        if (soru.tarihDuzenleme) {
+            const d = new Date(soru.tarihDuzenleme);
+            tHtml += `<div><i class="bi bi-pencil-square text-warning me-1"></i>Son Düzenleme: <strong>${d.toLocaleString('tr-TR')}</strong></div>`;
+        }
+        tarihBox.innerHTML = tHtml;
+        tarihBox.style.display = tHtml ? 'block' : 'none';
     }
 
     duzenlenenSoruIndex = index;
@@ -989,32 +1043,86 @@ function guncelleSoruListesi() {
                 <p class="mb-0">Henüz soru eklenmedi. Soru Ekle butonuna tıklayarak başlayın!</p>
             </div>
         `;
+        const filtreSonuc = document.getElementById('filtreSonucBilgisi');
+        if (filtreSonuc) filtreSonuc.innerText = '';
         return;
     }
 
     if (topluBar) topluBar.classList.remove('d-none');
 
+    // Filtreleme kriterlerini al
+    const filtreArama = (document.getElementById('soruFiltreArama')?.value || '').trim().toLowerCase();
+    const filtreZorluk = document.getElementById('soruFiltreZorluk')?.value || '';
+
+    const zorlukMap = {
+        'cokKolay': { label: 'Çok Kolay', badge: 'bg-success-subtle text-success border border-success-subtle', icon: 'bi-star' },
+        'kolay': { label: 'Kolay', badge: 'bg-info-subtle text-info border border-info-subtle', icon: 'bi-star-fill' },
+        'orta': { label: 'Orta', badge: 'bg-primary-subtle text-primary border border-primary-subtle', icon: 'bi-star-half' },
+        'zor': { label: 'Zor', badge: 'bg-warning-subtle text-warning border border-warning-subtle', icon: 'bi-stars' },
+        'cokZor': { label: 'Çok Zor', badge: 'bg-danger-subtle text-danger border border-danger-subtle', icon: 'bi-fire' }
+    };
+
     let html = '<div class="row g-4" id="sortable-sorular">';
+    let gorunenSoruSayisi = 0;
+
     sorular.forEach((soru, i) => {
         // Handle old undefined strings if any
         const ders = (soru.dersAdi && soru.dersAdi !== 'undefined') ? soru.dersAdi : (soru.ders && soru.ders !== 'undefined' ? soru.ders : '');
         const konu = (soru.konuAdi && soru.konuAdi !== 'undefined') ? soru.konuAdi : (soru.konu && soru.konu !== 'undefined' ? soru.konu : '');
         const kazanim = (soru.kazanimAdi && soru.kazanimAdi !== 'undefined') ? soru.kazanimAdi : (soru.kazanim && soru.kazanim !== 'undefined' ? soru.kazanim : '');
+        const zorlukKey = soru.zorlukSeviye || 'orta';
+        const zInfo = zorlukMap[zorlukKey] || zorlukMap['orta'];
+
+        // Zorluk Filtresi Kontrolü
+        if (filtreZorluk && zorlukKey !== filtreZorluk) {
+            return;
+        }
+
+        // Metin / Etiket / Kaynak Arama Kontrolü
+        if (filtreArama) {
+            const aramaHedefleri = [
+                soru.soruMetni || '',
+                soru.etiket || '',
+                soru.kaynak || '',
+                soru.aciklama || '',
+                ders,
+                konu,
+                kazanim,
+                soru.dogruSik || ''
+            ].join(' ').toLowerCase();
+
+            if (!aramaHedefleri.includes(filtreArama)) {
+                return;
+            }
+        }
+
+        gorunenSoruSayisi++;
+
+        // Etiket Rozetleri
+        let etiketlerHtml = '';
+        if (soru.etiket) {
+            const tagList = soru.etiket.split(/[,;]/).map(t => t.trim()).filter(t => t.length > 0);
+            etiketlerHtml = tagList.map(tag => 
+                `<span class="badge rounded-pill bg-light text-primary border me-1" style="cursor:pointer;" onclick="window.etiketeGoreFiltrele('${tag.replace(/'/g, "\\'")}')" title="Bu etikete göre filtrele"><i class="bi bi-hash"></i>${tag}</span>`
+            ).join('');
+        }
 
         html += `
         <div class="col-12 col-xl-6 mb-2" data-index="${i}" data-id="${soru.id}">
             <div class="card question-card shadow-sm h-100 border-start border-primary border-4">
                 <div class="card-body p-3">
-                    <!-- HEADER: Soru No, Cevap ve Butonlar -->
+                    <!-- HEADER: Soru No, Cevap, Zorluk ve Butonlar -->
                     <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="drag-handle btn btn-sm btn-outline-secondary py-0" style="cursor:move">
+                        <div class="d-flex align-items-center gap-1 flex-wrap">
+                            <span class="drag-handle btn btn-sm btn-outline-secondary py-0 px-1" style="cursor:move" title="Sıralamak için sürükleyin">
                                 <i class="bi bi-grip-vertical fs-5"></i>
                             </span>
                             <input type="checkbox" class="form-check-input soru-sec m-0" data-index="${i}" id="chk_${i}">
-                            <label class="form-check-label fw-bold text-primary mb-0" for="chk_${i}">Soru #${i + 1}</label>
-                            <span class="badge bg-success ms-2">Cevap: ${soru.dogruSik || 'A'}</span>
-                            <span class="ms-2 small text-muted">
+                            <label class="form-check-label fw-bold text-primary mb-0 ms-1" for="chk_${i}">Soru #${i + 1}</label>
+                            <span class="badge bg-success ms-1">Cevap: ${soru.dogruSik || 'A'}</span>
+                            <span class="badge ${zInfo.badge} ms-1" title="Zorluk Seviyesi"><i class="bi ${zInfo.icon} me-1"></i>${zInfo.label}</span>
+                            ${soru.cozumLinki ? `<a href="${soru.cozumLinki}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-danger py-0 px-2 ms-1 text-decoration-none" title="Çözümü Yeni Sekmede Aç"><i class="bi bi-play-circle me-1"></i>Çözüm</a>` : ''}
+                            <span class="ms-1 small text-muted" title="${soru.sikkarAyriMi ? 'Şıklar ayrı metin' : 'Şıklar resim içinde'}">
                                 ${soru.sikkarAyriMi ? '<i class="bi bi-list-check"></i>' : '<i class="bi bi-image"></i>'}
                             </span>
                         </div>
@@ -1049,7 +1157,7 @@ function guncelleSoruListesi() {
 
                         <!-- ŞIKLAR (Varsa) -->
                         ${soru.sikkarAyriMi ? `
-                        <div class="siklar-container py-2 px-1 mb-3" style="font-size:0.9rem">
+                        <div class="siklar-container py-2 px-1 mb-2" style="font-size:0.9rem">
                             <ul class="list-unstyled mb-0">
                                 ${['A', 'B', 'C', 'D', 'E'].map(h => {
                                     if (!soru.siklar || !soru.siklar[h]) return '';
@@ -1064,21 +1172,87 @@ function guncelleSoruListesi() {
                         </div>
                         ` : ''}
 
-                        <!-- ALT BİLGİ: Ders, Konu, Kazanım -->
-                        <div class="mt-3 pt-2 border-top d-flex flex-wrap gap-1">
+                        <!-- AÇIKLAMA / EK NOT (Varsa) -->
+                        ${soru.aciklama ? `
+                        <div class="small text-muted fst-italic mb-2 p-2 bg-light rounded border-start border-3 border-info">
+                            <i class="bi bi-info-circle text-info me-1"></i><strong>Not:</strong> ${soru.aciklama}
+                        </div>
+                        ` : ''}
+
+                        <!-- ALT BİLGİ: Ders, Konu, Kazanım, Kaynak, Etiketler, Tarih -->
+                        <div class="mt-3 pt-2 border-top d-flex flex-wrap align-items-center gap-1">
                             ${ders ? '<span class="badge bg-info-subtle text-info border border-info-subtle">' + ders + '</span>' : ''}
                             ${konu ? '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">' + konu + '</span>' : ''}
                             ${kazanim ? '<span class="badge bg-light text-dark border">' + kazanim + '</span>' : ''}
+                            ${soru.kaynak ? '<span class="badge bg-light text-dark border" title="Kaynak"><i class="bi bi-journal-bookmark text-primary me-1"></i>' + soru.kaynak + '</span>' : ''}
+                            ${etiketlerHtml}
+                            <span class="text-muted ms-auto small" style="font-size:0.75rem;" title="Oluşturulma / Güncelleme Tarihi">
+                                <i class="bi bi-clock me-1"></i>${soru.tarihDuzenleme ? 'Güncellendi: ' + new Date(soru.tarihDuzenleme).toLocaleDateString('tr-TR') : (soru.tarihOlusturma || soru.olusturmaTarihi ? new Date(soru.tarihOlusturma || soru.olusturmaTarihi).toLocaleDateString('tr-TR') : '')}
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>`;
     });
+
     html += '</div>';
+
+    if (gorunenSoruSayisi === 0) {
+        html = `
+            <div class="alert alert-warning text-center py-4">
+                <i class="bi bi-funnel fs-2 d-block mb-2"></i>
+                <p class="mb-0">Filtreleme kriterlerinize uygun soru bulunamadı.</p>
+                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="window.sifirlaSoruFiltre()">Filtreleri Temizle</button>
+            </div>
+        `;
+    }
+
     container.innerHTML = html;
     initializeSortable();
+
+    // Filtre sonuç sayacını güncelle
+    const filtreSonuc = document.getElementById('filtreSonucBilgisi');
+    if (filtreSonuc) {
+        if (filtreArama || filtreZorluk) {
+            filtreSonuc.innerText = `${gorunenSoruSayisi} / ${sorular.length} Soru`;
+            filtreSonuc.className = 'badge bg-primary text-white small py-2 px-2';
+        } else {
+            filtreSonuc.innerText = `Toplam: ${sorular.length} Soru`;
+            filtreSonuc.className = 'badge bg-light text-dark border small py-2 px-2';
+        }
+    }
 }
+
+// Filtre ve Test Fonksiyonları
+window.testCozumLinki = function() {
+    const url = document.getElementById('cozumLinkiInput')?.value?.trim();
+    if (url) {
+        window.open(url, '_blank');
+    } else {
+        showNotification('Lütfen geçerli bir çözüm linki girin!', 'warning');
+    }
+};
+
+window.uygulaSoruFiltre = function() {
+    guncelleSoruListesi();
+};
+
+window.sifirlaSoruFiltre = function() {
+    const a = document.getElementById('soruFiltreArama');
+    if (a) a.value = '';
+    const z = document.getElementById('soruFiltreZorluk');
+    if (z) z.value = '';
+    guncelleSoruListesi();
+};
+
+window.etiketeGoreFiltrele = function(etiket) {
+    const a = document.getElementById('soruFiltreArama');
+    if (a) {
+        a.value = etiket;
+        guncelleSoruListesi();
+    }
+};
 
 
 // ============================================
@@ -1500,7 +1674,9 @@ async function bankaKaydet() {
                 Id INTEGER PRIMARY KEY AUTOINCREMENT, DersId INTEGER, KonuId INTEGER, KazanimId INTEGER,
                 DersAdi TEXT, KonuAdi TEXT, KazanimAdi TEXT, SoruMetni TEXT, SoruMetniAyriMi INTEGER,
                 SiklarAyriMi INTEGER, SikA TEXT, SikB TEXT, SikC TEXT, SikD TEXT, SikE TEXT, DogruSik TEXT,
-                SoruResmi TEXT, OlusturmaTarihi TEXT
+                SoruResmi TEXT, OlusturmaTarihi TEXT,
+                ZorlukSeviye TEXT, Kaynak TEXT, Etiket TEXT, CozumLinki TEXT, Aciklama TEXT,
+                TarihOlusturma TEXT, TarihDuzenleme TEXT
             );
             CREATE TABLE IF NOT EXISTS BankaAyarlari (Id INTEGER PRIMARY KEY AUTOINCREMENT, BankaAdi TEXT, ToplamSoruSayisi INTEGER, OlusturmaTarihi TEXT);
         `);
@@ -1508,7 +1684,7 @@ async function bankaKaydet() {
         const dersMap = {}, konuMap = {}, kazanimMap = {};
         let dC = 1, kC = 1, kzC = 1;
 
-        const stmtS = db.prepare("INSERT INTO Soru (DersId, KonuId, KazanimId, DersAdi, KonuAdi, KazanimAdi, SoruMetni, SoruMetniAyriMi, SiklarAyriMi, SikA, SikB, SikC, SikD, SikE, DogruSik, SoruResmi, OlusturmaTarihi) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        const stmtS = db.prepare("INSERT INTO Soru (DersId, KonuId, KazanimId, DersAdi, KonuAdi, KazanimAdi, SoruMetni, SoruMetniAyriMi, SiklarAyriMi, SikA, SikB, SikC, SikD, SikE, DogruSik, SoruResmi, OlusturmaTarihi, ZorlukSeviye, Kaynak, Etiket, CozumLinki, Aciklama, TarihOlusturma, TarihDuzenleme) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         const stmtD = db.prepare("INSERT INTO Ders (Id, DersAdi) VALUES (?,?)");
         const stmtK = db.prepare("INSERT INTO Konu (Id, DersId, KonuAdi) VALUES (?,?,?)");
         const stmtKZ = db.prepare("INSERT INTO Kazanim (Id, DersId, KonuId, KazanimAdi) VALUES (?,?,?,?)");
@@ -1533,7 +1709,14 @@ async function bankaKaydet() {
                     }
                 }
             }
-            stmtS.run([dId, kId, kzId, dA, kA, kzA, s.soruMetni||'', s.soruMetniAyriMi?1:0, s.sikkarAyriMi?1:0, s.siklar?.A||'', s.siklar?.B||'', s.siklar?.C||'', s.siklar?.D||'', s.siklar?.E||'', s.dogruSik||'A', s.soruResmi||'', s.olusturmaTarihi||new Date().toISOString()]);
+            stmtS.run([
+                dId, kId, kzId, dA, kA, kzA,
+                s.soruMetni || '', s.soruMetniAyriMi ? 1 : 0, s.sikkarAyriMi ? 1 : 0,
+                s.siklar?.A || '', s.siklar?.B || '', s.siklar?.C || '', s.siklar?.D || '', s.siklar?.E || '',
+                s.dogruSik || 'A', s.soruResmi || '', s.olusturmaTarihi || new Date().toISOString(),
+                s.zorlukSeviye || 'orta', s.kaynak || '', s.etiket || '', s.cozumLinki || '', s.aciklama || '',
+                s.tarihOlusturma || s.olusturmaTarihi || new Date().toISOString(), s.tarihDuzenleme || ''
+            ]);
         }
         stmtS.free(); stmtD.free(); stmtK.free(); stmtKZ.free();
         db.run("INSERT INTO BankaAyarlari (BankaAdi, ToplamSoruSayisi, OlusturmaTarihi) VALUES (?,?,?)", [bankaAdi, sorular.length, new Date().toISOString()]);
@@ -1642,12 +1825,14 @@ async function secilenlerdenYeniBanka() {
                 Id INTEGER PRIMARY KEY AUTOINCREMENT, DersId INTEGER, KonuId INTEGER, KazanimId INTEGER,
                 DersAdi TEXT, KonuAdi TEXT, KazanimAdi TEXT, SoruMetni TEXT, SoruMetniAyriMi INTEGER,
                 SiklarAyriMi INTEGER, SikA TEXT, SikB TEXT, SikC TEXT, SikD TEXT, SikE TEXT, DogruSik TEXT,
-                SoruResmi TEXT, OlusturmaTarihi TEXT
+                SoruResmi TEXT, OlusturmaTarihi TEXT,
+                ZorlukSeviye TEXT, Kaynak TEXT, Etiket TEXT, CozumLinki TEXT, Aciklama TEXT,
+                TarihOlusturma TEXT, TarihDuzenleme TEXT
             );
             CREATE TABLE IF NOT EXISTS BankaAyarlari (Id INTEGER PRIMARY KEY AUTOINCREMENT, BankaAdi TEXT, ToplamSoruSayisi INTEGER, OlusturmaTarihi TEXT);
         `);
 
-        const stmtS = db.prepare("INSERT INTO Soru (DersId, KonuId, KazanimId, DersAdi, KonuAdi, KazanimAdi, SoruMetni, SoruMetniAyriMi, SiklarAyriMi, SikA, SikB, SikC, SikD, SikE, DogruSik, SoruResmi, OlusturmaTarihi) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        const stmtS = db.prepare("INSERT INTO Soru (DersId, KonuId, KazanimId, DersAdi, KonuAdi, KazanimAdi, SoruMetni, SoruMetniAyriMi, SiklarAyriMi, SikA, SikB, SikC, SikD, SikE, DogruSik, SoruResmi, OlusturmaTarihi, ZorlukSeviye, Kaynak, Etiket, CozumLinki, Aciklama, TarihOlusturma, TarihDuzenleme) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 
         for (const s of seciliSorular) {
             stmtS.run([
@@ -1655,7 +1840,9 @@ async function secilenlerdenYeniBanka() {
                 s.dersAdi || s.ders || '', s.konuAdi || s.konu || '', s.kazanimAdi || s.kazanim || '',
                 s.soruMetni || '', s.soruMetniAyriMi ? 1 : 0, s.sikkarAyriMi ? 1 : 0,
                 s.siklar?.A || '', s.siklar?.B || '', s.siklar?.C || '', s.siklar?.D || '', s.siklar?.E || '',
-                s.dogruSik || 'A', s.soruResmi || '', s.olusturmaTarihi || new Date().toISOString()
+                s.dogruSik || 'A', s.soruResmi || '', s.olusturmaTarihi || new Date().toISOString(),
+                s.zorlukSeviye || 'orta', s.kaynak || '', s.etiket || '', s.cozumLinki || '', s.aciklama || '',
+                s.tarihOlusturma || s.olusturmaTarihi || new Date().toISOString(), s.tarihDuzenleme || ''
             ]);
         }
         stmtS.free();

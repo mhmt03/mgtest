@@ -745,6 +745,13 @@
                                     E: s.SikE || ''
                                 },
                                 dogruSik: s.DogruSik || 'A',
+                                zorlukSeviye: s.ZorlukSeviye || 'orta',
+                                kaynak: s.Kaynak || '',
+                                etiket: s.Etiket || '',
+                                cozumLinki: s.CozumLinki || '',
+                                aciklama: s.Aciklama || '',
+                                tarihOlusturma: s.TarihOlusturma || s.OlusturmaTarihi || new Date().toISOString(),
+                                tarihDuzenleme: s.TarihDuzenleme || null,
                                 olusturmaTarihi: s.OlusturmaTarihi || new Date().toISOString()
                             };
                         });
@@ -892,6 +899,13 @@
                         sikkarAyriMi: s.SiklarAyriMi === 1,
                         siklar: { A: s.SikA||'', B: s.SikB||'', C: s.SikC||'', D: s.SikD||'', E: s.SikE||'' },
                         dogruSik: s.DogruSik || 'A',
+                        zorlukSeviye: s.ZorlukSeviye || 'orta',
+                        kaynak: s.Kaynak || '',
+                        etiket: s.Etiket || '',
+                        cozumLinki: s.CozumLinki || '',
+                        aciklama: s.Aciklama || '',
+                        tarihOlusturma: s.TarihOlusturma || s.OlusturmaTarihi || new Date().toISOString(),
+                        tarihDuzenleme: s.TarihDuzenleme || null,
                         olusturmaTarihi: s.OlusturmaTarihi || new Date().toISOString()
                     };
                 });

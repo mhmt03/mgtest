@@ -49,7 +49,7 @@ namespace mgtest.Controllers
             var tempFilePath = HttpContext.Session.GetString(sessionKey);
             if (string.IsNullOrEmpty(tempFilePath))
             {
-                TempData["Error"] = "Lütfen önce bir soru bankasý açýn.";
+                TempData["Error"] = "Lï¿½tfen ï¿½nce bir soru bankasï¿½ aï¿½ï¿½n.";
                 return RedirectToAction("Index", "mgtest");
             }
 
@@ -57,29 +57,29 @@ namespace mgtest.Controllers
             var ayarlar = await _sqliteService.GetBankaAyarlari(tempFilePath);
 
             ViewBag.SessionKey = sessionKey;
-            ViewBag.BankaAdi = ayarlar?.BankaAdi ?? "Soru Bankasý";
+            ViewBag.BankaAdi = ayarlar?.BankaAdi ?? "Soru Bankasï¿½";
             ViewBag.CanEdit = CanEditBank();
 
             return View(sorular);
         }
 
-        // POST: /Soru/ToggleMark - Ýþaretli durumunu deðiþtir
+        // POST: /Soru/ToggleMark - ï¿½ï¿½aretli durumunu deï¿½iï¿½tir
         [HttpPost]
         public async Task<IActionResult> ToggleMark(string sessionKey, int id)
         {
             var kullaniciId = GetKullaniciId();
             if (kullaniciId == null)
-                return Json(new { success = false, message = "Giriþ yapýnýz." });
+                return Json(new { success = false, message = "Giriï¿½ yapï¿½nï¿½z." });
 
             var tempFilePath = HttpContext.Session.GetString(sessionKey);
             if (string.IsNullOrEmpty(tempFilePath))
-                return Json(new { success = false, message = "Banka bulunamadý." });
+                return Json(new { success = false, message = "Banka bulunamadï¿½." });
 
             try
             {
                 var soru = await _sqliteService.GetSoru(tempFilePath, id);
                 if (soru == null)
-                    return Json(new { success = false, message = "Soru bulunamadý." });
+                    return Json(new { success = false, message = "Soru bulunamadï¿½." });
 
                 soru.IsaretliMi = !soru.IsaretliMi;
                 await _sqliteService.UpdateSoru(tempFilePath, soru);
@@ -131,7 +131,7 @@ namespace mgtest.Controllers
             var tempFilePath = HttpContext.Session.GetString(sessionKey);
             if (string.IsNullOrEmpty(tempFilePath))
             {
-                TempData["Error"] = "Soru bankasý bulunamadý.";
+                TempData["Error"] = "Soru bankasï¿½ bulunamadï¿½.";
                 return RedirectToAction("Index", "mgtest");
             }
 
@@ -143,7 +143,7 @@ namespace mgtest.Controllers
                     soru.SoruResmi = await ConvertImageToBase64(soruResmiFile);
                 }
 
-                // Þýk resimleri
+                // ï¿½ï¿½k resimleri
                 if (soru.SikkarAyriMi)
                 {
                     if (aSikkiResmiFile != null && aSikkiResmiFile.Length > 0)
@@ -161,7 +161,7 @@ namespace mgtest.Controllers
                 }
                 else
                 {
-                    // Þýk resimleri boþ býrak
+                    // ï¿½ï¿½k resimleri boï¿½ bï¿½rak
                     soru.ASikkiResmi = null;
                     soru.BSikkiResmi = null;
                     soru.CSikkiResmi = null;
@@ -170,23 +170,24 @@ namespace mgtest.Controllers
                     soru.FSikkiResmi = null;
                 }
 
-                // Varsayýlan deðerleri kontrol et ve ata
+                // Varsayï¿½lan deï¿½erleri kontrol et ve ata
                 if (Convert.ToInt64(soru.DersId) <= 0)
                 {
-                    soru.DersId = 1; // Varsayýlan "ders yok"
+                    soru.DersId = 1; // Varsayï¿½lan "ders yok"
                 }
                 if (soru.KonuId <= 0)
                 {
-                    soru.KonuId = 1; // Varsayýlan "konu yok"
+                    soru.KonuId = 1; // Varsayï¿½lan "konu yok"
                 }
                 if (soru.KazanimId <= 0)
                 {
-                    soru.KazanimId = 1; // Varsayýlan "kazaným yok"
+                    soru.KazanimId = 1; // Varsayï¿½lan "kazanï¿½m yok"
                 }
 
+                soru.TarihOlusturma = DateTime.Now;
                 await _sqliteService.AddSoru(tempFilePath, soru);
 
-                TempData["Success"] = "Soru baþarýyla eklendi.";
+                TempData["Success"] = "Soru baï¿½arï¿½yla eklendi.";
                 return RedirectToAction("Sorular", new { sessionKey });
             }
             catch (Exception ex)
@@ -215,14 +216,14 @@ namespace mgtest.Controllers
             var tempFilePath = HttpContext.Session.GetString(sessionKey);
             if (string.IsNullOrEmpty(tempFilePath))
             {
-                TempData["Error"] = "Soru bankasý bulunamadý.";
+                TempData["Error"] = "Soru bankasï¿½ bulunamadï¿½.";
                 return RedirectToAction("Index", "mgtest");
             }
 
             var soru = await _sqliteService.GetSoru(tempFilePath, id);
             if (soru == null)
             {
-                TempData["Error"] = "Soru bulunamadý.";
+                TempData["Error"] = "Soru bulunamadï¿½.";
                 return RedirectToAction("Sorular", new { sessionKey });
             }
 
@@ -256,7 +257,7 @@ namespace mgtest.Controllers
             var tempFilePath = HttpContext.Session.GetString(sessionKey);
             if (string.IsNullOrEmpty(tempFilePath))
             {
-                TempData["Error"] = "Soru bankasý bulunamadý.";
+                TempData["Error"] = "Soru bankasï¿½ bulunamadï¿½.";
                 return RedirectToAction("Index", "mgtest");
             }
 
@@ -265,11 +266,11 @@ namespace mgtest.Controllers
                 var mevcutSoru = await _sqliteService.GetSoru(tempFilePath, soru.Id);
                 if (mevcutSoru == null)
                 {
-                    TempData["Error"] = "Soru bulunamadý.";
+                    TempData["Error"] = "Soru bulunamadï¿½.";
                     return RedirectToAction("Sorular", new { sessionKey });
                 }
 
-                // Soru resmi güncelle
+                // Soru resmi gï¿½ncelle
                 if (soruResmiSil)
                 {
                     soru.SoruResmi = null;
@@ -283,7 +284,7 @@ namespace mgtest.Controllers
                     soru.SoruResmi = mevcutSoru.SoruResmi;
                 }
 
-                // Þýk resimleri
+                // ï¿½ï¿½k resimleri
                 if (!soru.SikkarAyriMi)
                 {
                     soru.ASikkiResmi = null;
@@ -305,15 +306,17 @@ namespace mgtest.Controllers
 
                 soru.Sira = mevcutSoru.Sira;
                 soru.YuklenmeTarihi = mevcutSoru.YuklenmeTarihi;
+                soru.TarihOlusturma = mevcutSoru.TarihOlusturma ?? DateTime.Now;
+                soru.TarihDuzenleme = DateTime.Now;
 
                 await _sqliteService.UpdateSoru(tempFilePath, soru);
 
-                TempData["Success"] = "Soru baþarýyla güncellendi.";
+                TempData["Success"] = "Soru baï¿½arï¿½yla gï¿½ncellendi.";
                 return RedirectToAction("Sorular", new { sessionKey });
             }
             catch (Exception ex)
             {
-                ViewBag.Error = $"Soru güncellenirken hata: {ex.Message}";
+                ViewBag.Error = $"Soru gï¿½ncellenirken hata: {ex.Message}";
                 ViewBag.SessionKey = sessionKey;
                 ViewBag.ZorlukSeviyeleri = Enum.GetNames(typeof(ZorlukSeviye));
                 return View(soru);
@@ -338,14 +341,14 @@ namespace mgtest.Controllers
             var tempFilePath = HttpContext.Session.GetString(sessionKey);
             if (string.IsNullOrEmpty(tempFilePath))
             {
-                TempData["Error"] = "Soru bankasý bulunamadý.";
+                TempData["Error"] = "Soru bankasï¿½ bulunamadï¿½.";
                 return RedirectToAction("Index", "mgtest");
             }
 
             try
             {
                 await _sqliteService.DeleteSoru(tempFilePath, id);
-                TempData["Success"] = "Soru baþarýyla silindi.";
+                TempData["Success"] = "Soru baï¿½arï¿½yla silindi.";
             }
             catch (Exception ex)
             {
@@ -355,7 +358,7 @@ namespace mgtest.Controllers
             return RedirectToAction("Sorular", new { sessionKey });
         }
 
-        // POST: /Soru/CropImage - AJAX için
+        // POST: /Soru/CropImage - AJAX iï¿½in
         [HttpPost]
         public async Task<IActionResult> CropImage(IFormFile file, int x, int y, int width, int height)
         {
@@ -367,7 +370,7 @@ namespace mgtest.Controllers
 
                 using var image = await Image.LoadAsync(ms);
 
-                // Kýrp
+                // Kï¿½rp
                 image.Mutate(i => i.Crop(new Rectangle(x, y, width, height)));
 
                 using var output = new MemoryStream();
@@ -396,7 +399,7 @@ namespace mgtest.Controllers
 
             var tempFilePath = HttpContext.Session.GetString(sessionKey);
             if (string.IsNullOrEmpty(tempFilePath))
-                return Json(new { success = false, message = "Banka bulunamadý." });
+                return Json(new { success = false, message = "Banka bulunamadï¿½." });
 
             try
             {
@@ -405,11 +408,11 @@ namespace mgtest.Controllers
 
                 if (!secilenSorular.Any())
                 {
-                    return Json(new { success = false, message = "Seçili soru yok." });
+                    return Json(new { success = false, message = "Seï¿½ili soru yok." });
                 }
 
-                // Ýleri de implement edilecek
-                return Json(new { success = true, message = "Word dosyasý hazýrlanýyor..." });
+                // ï¿½leri de implement edilecek
+                return Json(new { success = true, message = "Word dosyasï¿½ hazï¿½rlanï¿½yor..." });
             }
             catch (Exception ex)
             {
@@ -430,7 +433,7 @@ namespace mgtest.Controllers
 
             var tempFilePath = HttpContext.Session.GetString(sessionKey);
             if (string.IsNullOrEmpty(tempFilePath))
-                return Json(new { success = false, message = "Banka bulunamadý." });
+                return Json(new { success = false, message = "Banka bulunamadï¿½." });
 
             try
             {
@@ -439,11 +442,11 @@ namespace mgtest.Controllers
 
                 if (!secilenSorular.Any())
                 {
-                    return Json(new { success = false, message = "Seçili soru yok." });
+                    return Json(new { success = false, message = "Seï¿½ili soru yok." });
                 }
 
-                // Ýleri de implement edilecek
-                return Json(new { success = true, message = "PDF dosyasý hazýrlanýyor..." });
+                // ï¿½leri de implement edilecek
+                return Json(new { success = true, message = "PDF dosyasï¿½ hazï¿½rlanï¿½yor..." });
             }
             catch (Exception ex)
             {
@@ -451,7 +454,7 @@ namespace mgtest.Controllers
             }
         }
 
-        // Helper: Resim dosyasýný Base64'e çevir
+        // Helper: Resim dosyasï¿½nï¿½ Base64'e ï¿½evir
         private async Task<string> ConvertImageToBase64(IFormFile file)
         {
             using var ms = new MemoryStream();

@@ -14,7 +14,7 @@
             <label for="DersId" class="col-sm-3 col-form-label">Ders</label>
             <div class="col-sm-9">
                 <select id="DersId" name="DersId" class="form-select" required>
-                    <option value="">Se�iniz...</option>
+                    <option value="">Se�iniz...</option>
                 </select>
             </div>
         </div>
@@ -27,10 +27,10 @@
         </div>
 
         <div class="row mb-3">
-            <label for="DogruCevapSikki" class="col-sm-3 col-form-label">Do�ru Cevap *</label>
+            <label for="DogruCevapSikki" class="col-sm-3 col-form-label">Do�ru Cevap *</label>
             <div class="col-sm-9">
                 <select id="DogruCevapSikki" name="DogruCevapSikki" class="form-select" required>
-                    <option value="">Se�iniz</option>
+                    <option value="">Se�iniz</option>
                     <option value="A">A</option>
                     <option value="B">B</option>
                     <option value="C">C</option>
@@ -46,11 +46,39 @@
             <div class="col-sm-9">
                 <select id="ZorlukSeviye" name="ZorlukSeviye" class="form-select">
                     <option value="orta">Orta</option>
-                    <option value="cokKolay">�ok Kolay</option>
+                    <option value="cokKolay">�ok Kolay</option>
                     <option value="kolay">Kolay</option>
                     <option value="zor">Zor</option>
-                    <option value="cokZor">�ok Zor</option>
+                    <option value="cokZor">�ok Zor</option>
                 </select>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label for="Kaynak" class="col-sm-3 col-form-label">Kaynak</label>
+            <div class="col-sm-9">
+                <input type="text" id="Kaynak" name="Kaynak" class="form-control" placeholder="Örn: 2024 LGS, MEB, Özgün Soru" />
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label for="Etiket" class="col-sm-3 col-form-label">Etiketler</label>
+            <div class="col-sm-9">
+                <input type="text" id="Etiket" name="Etiket" class="form-control" placeholder="Örn: sevdiğim sorular, yeni nesil" />
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label for="CozumLinki" class="col-sm-3 col-form-label">Çözüm Linki</label>
+            <div class="col-sm-9">
+                <input type="url" id="CozumLinki" name="CozumLinki" class="form-control" placeholder="https://..." />
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label for="Aciklama" class="col-sm-3 col-form-label">Açıklama / Not</label>
+            <div class="col-sm-9">
+                <textarea id="Aciklama" name="Aciklama" class="form-control" rows="2" placeholder="Ek açıklama veya not..."></textarea>
             </div>
         </div>
 
@@ -64,7 +92,7 @@
         <div class="row">
             <div class="col-sm-9 offset-sm-3">
                 <button type="submit" class="btn btn-primary">Kaydet</button>
-                <a href="@Url.Action("Sorular", "mgtest")" class="btn btn-secondary">�ptal</a>
+                <a href="@Url.Action("Sorular", "mgtest")" class="btn btn-secondary">�ptal</a>
             </div>
         </div>
     </form>
